@@ -1,0 +1,36 @@
+[
+  {
+    "name": "Auto-lead: intenção de compra -> Funil principal",
+    "triggerType": "message_received",
+    "triggerConfig": { "keywords": ["preço","proposta","orçamento","prazo","compra"] },
+    "conditions": { "noOpenDealInSalesPipeline": true },
+    "actions": [
+      { "type": "add_tag", "tag": "Inbound" },
+      { "type": "create_deal", "pipelineKind": "sales", "stageName": "Novo lead", "titleFrom": "contact_company", "value": 0 },
+      { "type": "create_task", "priority": "high", "title": "Qualificar lead agora (5 min)" }
+    ]
+  },
+  {
+    "name": "Qualificando parado 48h -> Apoio/Aquecendo",
+    "triggerType": "stale_stage",
+    "triggerConfig": { "stageName": "Qualificando", "hours": 48 },
+    "conditions": { "pipelineKind": "sales" },
+    "actions": [
+      { "type": "move_to_pipeline", "pipelineKind": "warming", "stageName": "Aquecendo", "createDealIfMissing": true },
+      { "type": "add_tag", "tag": "Aquecimento" },
+      { "type": "create_task", "priority": "medium", "title": "Reativar: pergunta fechada + CTA" }
+    ]
+  },
+  {
+    "name": "Inatividade 30d -> Reativação",
+    "triggerType": "inactivity",
+    "triggerConfig": { "days": 30 },
+    "conditions": {},
+    "actions": [
+      { "type": "move_to_pipeline", "pipelineKind": "warming", "stageName": "Reativação", "createDealIfMissing": true },
+      { "type": "add_tag", "tag": "Reativação" },
+      { "type": "send_message", "template": "reativacao_msg1" },
+      { "type": "create_task", "priority": "medium", "title": "Ligar para reativar (10 min)", "dueInDays": 1 }
+    ]
+  }
+]

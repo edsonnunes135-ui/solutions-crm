@@ -1,0 +1,11 @@
+{
+  "name": "solutions-crm",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm -w apps/server run dev & npm -w apps/web run dev",
+    "lint": "echo \"Add lint\""
+  }
+}

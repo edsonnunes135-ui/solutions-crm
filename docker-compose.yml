@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: solutions_postgres
+    environment:
+      POSTGRES_USER: solutions
+      POSTGRES_PASSWORD: solutions
+      POSTGRES_DB: solutions
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: solutions_redis
+    ports:
+      - "6379:6379"
+
+  adminer:
+    image: adminer:4
+    container_name: solutions_adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
