@@ -7,5 +7,8 @@
   "scripts": {
     "dev": "npm -w apps/server run dev & npm -w apps/web run dev",
     "lint": "echo \"Add lint\""
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0"
   }
 }
