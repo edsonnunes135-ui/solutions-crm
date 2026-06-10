@@ -24,3 +24,32 @@ analyticsRouter.get("/analytics/kpis", async (req: AuthedRequest, res) => {
     tasksOpen,
   });
 });
+
+// Série temporal: leads criados e negócios ganhos por dia (últimos 7 dias)
+analyticsRouter.get("/analytics/series", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const days = 7;
+  const since = new Date();
+  since.setDate(since.getDate() - (days - 1));
+  since.setHours(0, 0, 0, 0);
+
+  const [contacts, wonDeals] = await Promise.all([
+    prisma.contact.findMany({ where: { orgId, createdAt: { gte: since } }, select: { createdAt: true } }),
+    prisma.deal.findMany({ where: { orgId, status: "won", updatedAt: { gte: since } }, select: { updatedAt: true } }),
+  ]);
+
+  const labels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const series: { day: string; leads: number; wins: number }[] = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date(since);
+    d.setDate(since.getDate() + i);
+    const next = new Date(d);
+    next.setDate(d.getDate() + 1);
+    series.push({
+      day: labels[d.getDay()],
+      leads: contacts.filter((c) => c.createdAt >= d && c.createdAt < next).length,
+      wins: wonDeals.filter((w) => w.updatedAt >= d && w.updatedAt < next).length,
+    });
+  }
+  res.json(series);
+});

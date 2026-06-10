@@ -105,9 +105,12 @@ export default function AuthPage({ onAuth }: Props) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••"
+              placeholder="••••••••"
               className="w-full rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200"
             />
+            {mode === "register" && (
+              <p className="mt-1 text-xs text-slate-500">Mínimo 8 caracteres, com letras e números.</p>
+            )}
           </div>
 
           {error && (

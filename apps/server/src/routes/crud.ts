@@ -138,6 +138,10 @@ crudRouter.patch("/deals/:id", async (req: AuthedRequest, res) => {
   const parsed = Body.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
 
+  // Garante que o deal pertence à organização do usuário
+  const existing = await prisma.deal.findFirst({ where: { id: String(id), orgId } });
+  if (!existing) return res.status(404).json({ error: "not_found" });
+
   const deal = await prisma.deal.update({
     where: { id: String(id) },
     data: {
@@ -192,8 +196,14 @@ crudRouter.post("/tasks", async (req: AuthedRequest, res) => {
 });
 
 crudRouter.patch("/tasks/:id/complete", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
   const id = req.params.id;
-  const task = await prisma.task.update({ where: { id: String(id) }, data: { status: "done" } });
+  const updated = await prisma.task.updateMany({
+    where: { id: String(id), orgId },
+    data: { status: "done" },
+  });
+  if (updated.count === 0) return res.status(404).json({ error: "not_found" });
+  const task = await prisma.task.findUnique({ where: { id: String(id) } });
   res.json(task);
 });
 

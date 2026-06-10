@@ -11,7 +11,11 @@ const RegisterSchema = z.object({
   orgName: z.string().min(2),
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z
+    .string()
+    .min(8, "minimo 8 caracteres")
+    .regex(/[a-zA-Z]/, "precisa de letra")
+    .regex(/[0-9]/, "precisa de numero"),
 });
 
 authRouter.post("/auth/register", async (req, res) => {

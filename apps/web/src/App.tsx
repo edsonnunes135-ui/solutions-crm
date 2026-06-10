@@ -180,17 +180,19 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   const [pipelines, setPipelines] = useState<any[]>([]);
   const [kpis, setKpis] = useState<any>(null);
   const [automations, setAutomations] = useState<any[]>([]);
+  const [series, setSeries] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   const reload = useCallback(async () => {
     try {
-      const [c, d, t, p, k, a] = await Promise.all([
+      const [c, d, t, p, k, a, s] = await Promise.all([
         apiGet("/contacts", token),
         apiGet("/deals", token),
         apiGet("/tasks", token),
         apiGet("/pipelines", token),
         apiGet("/analytics/kpis", token),
         apiGet("/automations", token),
+        apiGet("/analytics/series", token).catch(() => []),
       ]);
       setContacts(c);
       setDeals(d);
@@ -198,6 +200,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
       setPipelines(p);
       setKpis(k);
       setAutomations(a);
+      setSeries(s);
     } catch {
       // silently ignore — token may have expired
     } finally {
@@ -206,6 +209,12 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   }, [token]);
 
   useEffect(() => { reload(); }, [reload]);
+
+  // Auto-refresh a cada 30s para manter dados atualizados entre dispositivos
+  useEffect(() => {
+    const t = setInterval(reload, 30000);
+    return () => clearInterval(t);
+  }, [reload]);
 
   // ── Selected contact / inbox ──────────────────────────────────────────────
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -236,11 +245,14 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   // ── Pipeline ──────────────────────────────────────────────────────────────
   const activePipeline = pipelines[0];
   const stages = activePipeline?.stages ?? [];
+  const [dragOverStage, setDragOverStage] = useState<string | null>(null);
 
   async function moveDeal(dealId: string, toStageId: string) {
-    setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stageId: toStageId } : d)));
+    const stageName = (stages.find((s: any) => s.id === toStageId)?.name ?? "").toLowerCase();
+    const status = stageName.includes("ganho") ? "won" : stageName.includes("perdido") ? "lost" : "open";
+    setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stageId: toStageId, status } : d)));
     try {
-      await apiPatch(`/deals/${dealId}`, { stageId: toStageId }, token);
+      await apiPatch(`/deals/${dealId}`, { stageId: toStageId, status }, token);
     } catch {
       await reload();
     }
@@ -319,16 +331,24 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
     }
   }
 
-  // ── Analytics chart ───────────────────────────────────────────────────────
-  const analyticsSeries = [
-    { day: "Seg", leads: 12, wins: 2 },
-    { day: "Ter", leads: 18, wins: 3 },
-    { day: "Qua", leads: 15, wins: 2 },
-    { day: "Qui", leads: 22, wins: 4 },
-    { day: "Sex", leads: 19, wins: 3 },
-    { day: "Sáb", leads: 7, wins: 1 },
-    { day: "Dom", leads: 5, wins: 1 },
-  ];
+  // ── Analytics chart (dados reais da API) ──────────────────────────────────
+  const analyticsSeries = series.length > 0 ? series : [{ day: "—", leads: 0, wins: 0 }];
+
+  // Exporta contatos + negócios em CSV
+  function exportCSV() {
+    const rows = [
+      ["tipo", "nome", "empresa", "telefone", "tags", "titulo_negocio", "valor", "etapa", "status"],
+      ...contacts.map((c) => ["contato", c.name, c.company ?? "", c.phone ?? "", (c.tags ?? []).join(";"), "", "", "", ""]),
+      ...deals.map((d) => ["negocio", d.contact?.name ?? "", "", "", "", d.title, String(d.value ?? 0), d.stage?.name ?? "", d.status ?? ""]),
+    ];
+    const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `solutions-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
 
   // ── AI copilot ────────────────────────────────────────────────────────────
   const [aiPrompt, setAiPrompt] = useState("Resuma a conversa e sugira a próxima ação.");
@@ -632,30 +652,50 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                     {stages.map((s: any) => {
                       const stageDeals = deals.filter((d) => d.stageId === s.id);
                       return (
-                        <Card key={s.id}>
-                          <CardHeader>
-                            <div className="flex items-center justify-between">
-                              <div className="text-base font-semibold">{s.name}</div>
-                              <Pill>{stageDeals.length}</Pill>
-                            </div>
-                            <div className="text-sm text-slate-500">{currencyBRL(stageDeals.reduce((a, d) => a + (d.value ?? 0), 0))}</div>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            {stageDeals.map((d) => (
-                              <div key={d.id} className="rounded-2xl border p-3">
-                                <div className="font-medium text-sm">{d.title}</div>
-                                <div className="mt-1 text-xs text-slate-500">{currencyBRL(d.value ?? 0)} • {d.contact?.name ?? "—"}</div>
-                                <div className="mt-3 flex flex-wrap gap-1">
-                                  {stages.filter((x: any) => x.id !== s.id).slice(0, 3).map((x: any) => (
-                                    <Button key={x.id} variant="outline" className="px-2 py-1 text-xs" onClick={() => moveDeal(d.id, x.id)}>
-                                      → {x.name}
-                                    </Button>
-                                  ))}
-                                </div>
+                        <Card
+                          key={s.id}
+                          className={dragOverStage === s.id ? "ring-2 ring-blue-400" : ""}
+                        >
+                          <div
+                            onDragOver={(e) => { e.preventDefault(); setDragOverStage(s.id); }}
+                            onDragLeave={() => setDragOverStage((p) => (p === s.id ? null : p))}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              setDragOverStage(null);
+                              const dealId = e.dataTransfer.getData("dealId");
+                              if (dealId) moveDeal(dealId, s.id);
+                            }}
+                            className="min-h-full"
+                          >
+                            <CardHeader>
+                              <div className="flex items-center justify-between">
+                                <div className="text-base font-semibold">{s.name}</div>
+                                <Pill>{stageDeals.length}</Pill>
                               </div>
-                            ))}
-                            {stageDeals.length === 0 && <div className="rounded-2xl border p-3 text-sm text-slate-400">Vazio</div>}
-                          </CardContent>
+                              <div className="text-sm text-slate-500">{currencyBRL(stageDeals.reduce((a, d) => a + (d.value ?? 0), 0))}</div>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                              {stageDeals.map((d) => (
+                                <div
+                                  key={d.id}
+                                  draggable
+                                  onDragStart={(e) => e.dataTransfer.setData("dealId", d.id)}
+                                  className="cursor-grab rounded-2xl border p-3 transition hover:shadow-md active:cursor-grabbing"
+                                >
+                                  <div className="font-medium text-sm">{d.title}</div>
+                                  <div className="mt-1 text-xs text-slate-500">{currencyBRL(d.value ?? 0)} • {d.contact?.name ?? "—"}</div>
+                                  <div className="mt-3 flex flex-wrap gap-1">
+                                    {stages.filter((x: any) => x.id !== s.id).slice(0, 3).map((x: any) => (
+                                      <Button key={x.id} variant="outline" className="px-2 py-1 text-xs" onClick={() => moveDeal(d.id, x.id)}>
+                                        → {x.name}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                              {stageDeals.length === 0 && <div className="rounded-2xl border p-3 text-sm text-slate-400">Arraste um card aqui</div>}
+                            </CardContent>
+                          </div>
                         </Card>
                       );
                     })}
@@ -816,8 +856,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                     <div className="text-base font-semibold">Relatórios rápidos</div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <Button variant="outline" className="w-full">Exportar (CSV)</Button>
-                    <Button variant="outline" className="w-full">Enviar resumo diário</Button>
+                    <Button variant="outline" className="w-full" onClick={exportCSV}>Exportar (CSV)</Button>
                     <div className="h-px bg-slate-200" />
                     <MiniStat label="Contatos" value={kpis?.leads ?? contacts.length} />
                     <MiniStat label="Tarefas abertas" value={kpis?.tasksOpen ?? tasks.filter((t) => t.status === "open").length} />

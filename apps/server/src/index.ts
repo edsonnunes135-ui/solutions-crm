@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 import { healthRouter } from "./routes/health";
 import { authRouter } from "./routes/auth";
@@ -15,9 +17,30 @@ import { devRouter } from "./routes/dev";
 dotenv.config();
 
 const app = express();
+app.set("trust proxy", 1); // atrás do proxy do Render
+app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 app.use(morgan("dev"));
+
+// Proteção contra força bruta no login/registro
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "too_many_attempts" },
+});
+app.use("/auth", authLimiter);
+
+// Limite geral da API
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(apiLimiter);
 
 app.use(healthRouter);
 app.use(authRouter);
