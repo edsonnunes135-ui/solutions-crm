@@ -65,17 +65,60 @@ channelsRouter.post("/channels/send", async (req: AuthedRequest, res) => {
   const parsed = SendSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
 
-  // cria mensagem outbound local (stub)
+  const conv = await prisma.conversation.findFirst({
+    where: { id: parsed.data.conversationId, orgId },
+  });
+  if (!conv) return res.status(404).json({ error: "conversation_not_found" });
+
+  // registra a mensagem outbound localmente
   const msg = await prisma.message.create({
     data: {
       orgId,
-      conversationId: parsed.data.conversationId,
+      conversationId: conv.id,
       channel: parsed.data.channel,
       direction: "outbound",
       text: parsed.data.text,
     },
   });
 
-  // TODO: enviar para canal real e salvar externalId, status etc.
-  res.json({ ok: true, message: msg, sent: false, note: "stub: plugue a API do canal" });
+  // envio real via WhatsApp Cloud API (Meta)
+  if (parsed.data.channel === "whatsapp") {
+    const token = process.env.WHATSAPP_ACCESS_TOKEN;
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const recipient = conv.externalId; // wa id do contato (vem do webhook)
+
+    if (!token || !phoneNumberId) {
+      return res.json({ ok: true, message: msg, sent: false, note: "configure WHATSAPP_ACCESS_TOKEN e WHATSAPP_PHONE_NUMBER_ID" });
+    }
+    if (!recipient) {
+      return res.json({ ok: true, message: msg, sent: false, note: "conversa sem identidade externa (contato precisa ter mandado mensagem antes)" });
+    }
+
+    try {
+      const r = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: recipient,
+          type: "text",
+          text: { body: parsed.data.text },
+        }),
+      });
+      const data: any = await r.json();
+      if (!r.ok) {
+        return res.status(502).json({ ok: false, message: msg, sent: false, error: data?.error?.message ?? "meta_error" });
+      }
+      const externalId = data?.messages?.[0]?.id ?? null;
+      if (externalId) {
+        await prisma.message.update({ where: { id: msg.id }, data: { externalId } });
+      }
+      return res.json({ ok: true, message: msg, sent: true, externalId });
+    } catch (err: any) {
+      return res.status(502).json({ ok: false, message: msg, sent: false, error: err.message });
+    }
+  }
+
+  // Instagram: ainda não implementado
+  res.json({ ok: true, message: msg, sent: false, note: "instagram: em breve" });
 });
