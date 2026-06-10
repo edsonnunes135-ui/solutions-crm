@@ -31,6 +31,24 @@ authRouter.post("/auth/register", async (req, res) => {
     data: { orgId: org.id, userId: user.id, role: "owner" },
   });
 
+  // Cria funil padrão para a organização
+  await prisma.pipeline.create({
+    data: {
+      orgId: org.id,
+      name: "Vendas",
+      kind: "sales",
+      stages: {
+        create: [
+          { orgId: org.id, name: "Novo", order: 1 },
+          { orgId: org.id, name: "Qualificando", order: 2 },
+          { orgId: org.id, name: "Proposta", order: 3 },
+          { orgId: org.id, name: "Ganho", order: 4 },
+          { orgId: org.id, name: "Perdido", order: 5 },
+        ],
+      },
+    },
+  });
+
   const secret = process.env.JWT_SECRET || "change_me";
   const token = jwt.sign({ userId: user.id, orgId: org.id, role: "owner" }, secret, { expiresIn: "7d" });
   res.json({ token, orgId: org.id, user: { id: user.id, name: user.name, email: user.email } });

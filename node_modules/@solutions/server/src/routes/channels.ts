@@ -50,7 +50,7 @@ channelsRouter.post("/channels/accounts", async (req: AuthedRequest, res) => {
 channelsRouter.delete("/channels/accounts/:id", async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const id = req.params.id;
-  const deleted = await prisma.channelAccount.deleteMany({ where: { id, orgId } });
+  const deleted = await prisma.channelAccount.deleteMany({ where: { id: String(id), orgId } });
   res.json({ ok: true, deleted: deleted.count });
 });
 

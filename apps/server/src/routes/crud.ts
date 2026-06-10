@@ -139,8 +139,13 @@ crudRouter.patch("/deals/:id", async (req: AuthedRequest, res) => {
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
 
   const deal = await prisma.deal.update({
-    where: { id },
-    data: { ...parsed.data },
+    where: { id: String(id) },
+    data: {
+      stageId: parsed.data.stageId,
+      status: parsed.data.status,
+      value: parsed.data.value,
+      title: parsed.data.title,
+    },
   });
 
   if (parsed.data.stageId) {
@@ -179,8 +184,8 @@ crudRouter.post("/tasks", async (req: AuthedRequest, res) => {
       title: parsed.data.title,
       priority: parsed.data.priority ?? "medium",
       dueAt: parsed.data.dueAt ? new Date(parsed.data.dueAt) : null,
-      contactId: parsed.data.contactId ?? null,
-      dealId: parsed.data.dealId ?? null,
+      contactId: typeof parsed.data.contactId === "string" ? parsed.data.contactId : null,
+      dealId: typeof parsed.data.dealId === "string" ? parsed.data.dealId : null,
     },
   });
   res.json(task);
@@ -188,7 +193,7 @@ crudRouter.post("/tasks", async (req: AuthedRequest, res) => {
 
 crudRouter.patch("/tasks/:id/complete", async (req: AuthedRequest, res) => {
   const id = req.params.id;
-  const task = await prisma.task.update({ where: { id }, data: { status: "done" } });
+  const task = await prisma.task.update({ where: { id: String(id) }, data: { status: "done" } });
   res.json(task);
 });
 

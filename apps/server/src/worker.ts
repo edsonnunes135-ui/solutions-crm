@@ -340,7 +340,7 @@ const worker = new Worker<JobData>(
           continue;
         }
 
-        const actions: Action[] = Array.isArray(a.actions) ? a.actions : [];
+        const actions: Action[] = Array.isArray(a.actions) ? (a.actions as Action[]) : [];
         const results = [];
         for (const act of actions) {
           const r = await executeAction(event.orgId, event, act);
