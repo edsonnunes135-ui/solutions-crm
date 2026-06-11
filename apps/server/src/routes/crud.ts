@@ -3,7 +3,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { enqueueEvent } from "../lib/queue";
-import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { requireAuth, requireRole, AuthedRequest } from "../middleware/auth";
 
 export const crudRouter = Router();
 crudRouter.use(requireAuth);
@@ -78,6 +78,16 @@ crudRouter.get("/contacts/:id/messages", async (req: AuthedRequest, res) => {
     channel: conversations[0]?.channel ?? "whatsapp",
     messages,
   });
+});
+
+// Excluir conversas de um contato (apaga o histórico de mensagens) — só gestor/dono
+crudRouter.delete("/contacts/:id/conversations", requireRole("owner", "admin"), async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const contact = await prisma.contact.findFirst({ where: { id: String(req.params.id), orgId } });
+  if (!contact) return res.status(404).json({ error: "not_found" });
+
+  const deleted = await prisma.conversation.deleteMany({ where: { orgId, contactId: contact.id } });
+  res.json({ ok: true, deleted: deleted.count });
 });
 
 // Pipelines & stages
