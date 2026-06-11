@@ -55,7 +55,7 @@ authRouter.post("/auth/register", async (req, res) => {
 
   const secret = process.env.JWT_SECRET || "change_me";
   const token = jwt.sign({ userId: user.id, orgId: org.id, role: "owner" }, secret, { expiresIn: "7d" });
-  res.json({ token, orgId: org.id, user: { id: user.id, name: user.name, email: user.email } });
+  res.json({ token, orgId: org.id, role: "owner", user: { id: user.id, name: user.name, email: user.email } });
 });
 
 const LoginSchema = z.object({

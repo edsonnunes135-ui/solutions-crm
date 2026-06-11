@@ -56,6 +56,30 @@ crudRouter.post("/contacts", async (req: AuthedRequest, res) => {
   res.json(contact);
 });
 
+// Histórico de mensagens de um contato (todas as conversas dele)
+crudRouter.get("/contacts/:id/messages", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const contact = await prisma.contact.findFirst({ where: { id: String(req.params.id), orgId } });
+  if (!contact) return res.status(404).json({ error: "not_found" });
+
+  const conversations = await prisma.conversation.findMany({
+    where: { orgId, contactId: contact.id },
+    select: { id: true, channel: true },
+  });
+
+  const messages = await prisma.message.findMany({
+    where: { orgId, conversationId: { in: conversations.map((c) => c.id) } },
+    orderBy: { sentAt: "asc" },
+    take: 200,
+  });
+
+  res.json({
+    conversationId: conversations[0]?.id ?? null,
+    channel: conversations[0]?.channel ?? "whatsapp",
+    messages,
+  });
+});
+
 // Pipelines & stages
 crudRouter.get("/pipelines", async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
@@ -121,9 +145,16 @@ crudRouter.post("/deals", async (req: AuthedRequest, res) => {
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
 
   const deal = await prisma.deal.create({
-    data: { orgId, ...parsed.data, value: parsed.data.value ?? 0 },
+    data: { orgId, ...parsed.data, value: parsed.data.value ?? 0, ownerId: req.user!.userId },
   });
   res.json(deal);
+});
+
+crudRouter.delete("/deals/:id", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const deleted = await prisma.deal.deleteMany({ where: { id: String(req.params.id), orgId } });
+  if (deleted.count === 0) return res.status(404).json({ error: "not_found" });
+  res.json({ ok: true });
 });
 
 crudRouter.patch("/deals/:id", async (req: AuthedRequest, res) => {
@@ -134,6 +165,7 @@ crudRouter.patch("/deals/:id", async (req: AuthedRequest, res) => {
     status: z.string().optional(),
     value: z.number().int().optional(),
     title: z.string().optional(),
+    lostReason: z.string().optional(),
   });
   const parsed = Body.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
@@ -149,6 +181,7 @@ crudRouter.patch("/deals/:id", async (req: AuthedRequest, res) => {
       status: parsed.data.status,
       value: parsed.data.value,
       title: parsed.data.title,
+      lostReason: parsed.data.lostReason,
     },
   });
 

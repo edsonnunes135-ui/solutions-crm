@@ -23,10 +23,10 @@ export default function AuthPage({ onAuth }: Props) {
     try {
       if (mode === "login") {
         const data = await apiPost("/auth/login", { email, password });
-        saveAuth(data.token, data.user, data.orgId);
+        saveAuth(data.token, data.user, data.orgId, data.role ?? "agent");
       } else {
         const data = await apiPost("/auth/register", { email, password, name, orgName });
-        saveAuth(data.token, data.user, data.orgId);
+        saveAuth(data.token, data.user, data.orgId, data.role ?? "owner");
       }
       onAuth();
     } catch (err: any) {

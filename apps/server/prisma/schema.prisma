@@ -45,6 +45,7 @@ model Organization {
   contactTags       ContactTag[]
   contactIdentities ContactIdentity[]
   channelAccounts   ChannelAccount[]
+  setting           OrgSetting?
 }
 
 model User {
@@ -162,6 +163,7 @@ model Deal {
   title      String
   value      Int      @default(0)
   status     String   @default("open") // open/won/lost
+  lostReason String?
   ownerId    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -250,6 +252,17 @@ model ChannelAccount {
 
   @@unique([orgId, channel, externalAccountId])
   @@index([channel, externalAccountId])
+}
+
+model OrgSetting {
+  id                    String   @id @default(cuid())
+  orgId                 String   @unique
+  whatsappAccessToken   String?
+  whatsappPhoneNumberId String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 }
 
 model Event {

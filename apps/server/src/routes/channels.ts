@@ -83,8 +83,9 @@ channelsRouter.post("/channels/send", async (req: AuthedRequest, res) => {
 
   // envio real via WhatsApp Cloud API (Meta)
   if (parsed.data.channel === "whatsapp") {
-    const token = process.env.WHATSAPP_ACCESS_TOKEN;
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const setting = await prisma.orgSetting.findUnique({ where: { orgId } });
+    const token = setting?.whatsappAccessToken || process.env.WHATSAPP_ACCESS_TOKEN;
+    const phoneNumberId = setting?.whatsappPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
     const recipient = conv.externalId; // wa id do contato (vem do webhook)
 
     if (!token || !phoneNumberId) {

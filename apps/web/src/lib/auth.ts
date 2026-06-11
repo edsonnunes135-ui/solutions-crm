@@ -1,16 +1,16 @@
 const KEY = "solutions_token";
 const USER_KEY = "solutions_user";
 
-export function saveAuth(token: string, user: { id: string; name: string; email: string }, orgId: string) {
+export function saveAuth(token: string, user: { id: string; name: string; email: string }, orgId: string, role: string) {
   localStorage.setItem(KEY, token);
-  localStorage.setItem(USER_KEY, JSON.stringify({ ...user, orgId }));
+  localStorage.setItem(USER_KEY, JSON.stringify({ ...user, orgId, role }));
 }
 
 export function getToken(): string | null {
   return localStorage.getItem(KEY);
 }
 
-export function getUser(): { id: string; name: string; email: string; orgId: string } | null {
+export function getUser(): { id: string; name: string; email: string; orgId: string; role: string } | null {
   const raw = localStorage.getItem(USER_KEY);
   if (!raw) return null;
   try { return JSON.parse(raw); } catch { return null; }

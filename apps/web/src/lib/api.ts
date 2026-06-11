@@ -21,6 +21,28 @@ export async function apiPost(path: string, body: any, token?: string) {
   return r.json();
 }
 
+export async function apiPut(path: string, body: any, token?: string) {
+  const r = await fetch(`${API}${path}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export async function apiDelete(path: string, token?: string) {
+  const r = await fetch(`${API}${path}`, {
+    method: "DELETE",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
 export async function apiPatch(path: string, body: any, token?: string) {
   const r = await fetch(`${API}${path}`, {
     method: "PATCH",

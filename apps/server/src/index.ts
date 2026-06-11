@@ -13,6 +13,7 @@ import { webhooksRouter } from "./routes/webhooks";
 import { channelsRouter } from "./routes/channels";
 import { aiRouter } from "./routes/ai";
 import { devRouter } from "./routes/dev";
+import { settingsRouter } from "./routes/settings";
 
 dotenv.config();
 
@@ -50,6 +51,7 @@ app.use(webhooksRouter);
 app.use(channelsRouter);
 app.use(aiRouter);
 app.use(devRouter);
+app.use(settingsRouter);
 
 const port = Number(process.env.PORT || 4000);
 app.listen(port, () => {
