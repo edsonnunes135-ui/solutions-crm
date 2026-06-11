@@ -75,13 +75,14 @@ model Membership {
 }
 
 model Contact {
-  id        String       @id @default(cuid())
-  orgId     String
-  name      String
-  company   String?
-  phone     String?
-  email     String?
-  tags      ContactTag[]
+  id                    String       @id @default(cuid())
+  orgId                 String
+  name                  String
+  company               String?
+  phone                 String?
+  email                 String?
+  conversationDeletedAt DateTime? // conversa na "pasta de apagados" do inbox
+  tags                  ContactTag[]
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 

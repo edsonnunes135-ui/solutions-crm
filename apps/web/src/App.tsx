@@ -222,32 +222,46 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   // ── Selected contact / inbox ──────────────────────────────────────────────
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const selectedContact = useMemo(
-    () => contacts.find((c) => c.id === selectedContactId) ?? contacts[0] ?? null,
+    () => contacts.find((c) => c.id === selectedContactId) ?? contacts.find((c) => !c.conversationDeletedAt) ?? null,
     [contacts, selectedContactId]
   );
 
   const [channelFilter, setChannelFilter] = useState<"all" | "whatsapp" | "instagram">("all");
+  const [inboxFolder, setInboxFolder] = useState<"active" | "deleted">("active");
   const [showFilters, setShowFilters] = useState(false);
 
   const filteredContacts = useMemo(() => {
     const t = q.trim().toLowerCase();
-    let list = contacts;
+    let list = contacts.filter((c) => (inboxFolder === "deleted" ? !!c.conversationDeletedAt : !c.conversationDeletedAt));
     if (channelFilter !== "all") list = list.filter((c) => c.channel === channelFilter);
     if (!t) return list;
     return list.filter((c) =>
       [c.name, c.company, c.phone, c.lastMessage, (c.tags ?? []).join(" ")].join(" ").toLowerCase().includes(t)
     );
-  }, [contacts, q, channelFilter]);
+  }, [contacts, q, channelFilter, inboxFolder]);
 
   async function deleteConversation(contactId: string, name: string) {
-    if (!confirm(`Excluir todo o histórico de conversa de ${name}? Essa ação não pode ser desfeita.`)) return;
+    if (!confirm(`Mover a conversa de ${name} para a pasta de apagados?`)) return;
+    // some imediatamente da lista
+    setContacts((prev) => prev.map((c) => (c.id === contactId ? { ...c, conversationDeletedAt: new Date().toISOString() } : c)));
+    if (selectedContact?.id === contactId) {
+      setSelectedContactId(null);
+      setThread({ conversationId: null, channel: "whatsapp", messages: [] });
+    }
     try {
       await apiDelete(`/contacts/${contactId}/conversations`, token);
-      if (selectedContact?.id === contactId) {
-        setThread({ conversationId: null, channel: "whatsapp", messages: [] });
-      }
     } catch (err: any) {
       alert(`Não foi possível excluir: ${err.message}`);
+      await reload();
+    }
+  }
+
+  async function restoreConversation(contactId: string) {
+    setContacts((prev) => prev.map((c) => (c.id === contactId ? { ...c, conversationDeletedAt: null } : c)));
+    try {
+      await apiPost(`/contacts/${contactId}/conversations/restore`, {}, token);
+    } catch {
+      await reload();
     }
   }
 
@@ -647,13 +661,33 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                                 {label}
                               </button>
                             ))}
+                            {isManager && (
+                              <>
+                                <div className="my-1 h-px bg-slate-200" />
+                                <div className="px-2 pb-1 text-xs font-medium text-slate-500">Pasta</div>
+                                {([["active", "Caixa de entrada"], ["deleted", "🗑️ Apagados"]] as const).map(([v, label]) => (
+                                  <button
+                                    key={v}
+                                    onClick={() => { setInboxFolder(v); setShowFilters(false); }}
+                                    className={`block w-full rounded-xl px-2 py-1.5 text-left text-sm transition ${inboxFolder === v ? "bg-slate-900 text-white" : "hover:bg-slate-50"}`}
+                                  >
+                                    {label}
+                                  </button>
+                                ))}
+                              </>
+                            )}
                           </div>
                         )}
                       </div>
                     </div>
                     <div className="text-sm text-slate-500">
-                      {filteredContacts.length} de {contacts.length} contatos
-                      {channelFilter !== "all" && ` • filtro: ${channelFilter === "whatsapp" ? "WhatsApp" : "Instagram"}`}
+                      {inboxFolder === "deleted" ? `🗑️ Apagados: ${filteredContacts.length}` : `${filteredContacts.length} de ${contacts.filter((c) => !c.conversationDeletedAt).length} conversas`}
+                      {channelFilter !== "all" && ` • ${channelFilter === "whatsapp" ? "WhatsApp" : "Instagram"}`}
+                      {(channelFilter !== "all" || inboxFolder === "deleted") && (
+                        <button onClick={() => { setChannelFilter("all"); setInboxFolder("active"); }} className="ml-2 text-xs text-blue-600 underline">
+                          limpar filtros
+                        </button>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -681,7 +715,15 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                                 </div>
                                 <div className="flex shrink-0 items-center gap-1">
                                   <span className="text-xs text-slate-400">{c.phone ?? ""}</span>
-                                  {isManager && (
+                                  {isManager && (inboxFolder === "deleted" ? (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); restoreConversation(c.id); }}
+                                      className="rounded px-1.5 py-0.5 text-xs text-blue-600 hover:bg-blue-50"
+                                      title="Restaurar conversa"
+                                    >
+                                      Restaurar
+                                    </button>
+                                  ) : (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); deleteConversation(c.id, c.name); }}
                                       className="rounded p-1 text-slate-300 hover:bg-red-50 hover:text-red-600"
@@ -689,7 +731,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
                                     </button>
-                                  )}
+                                  ))}
                                 </div>
                               </div>
                               {c.lastMessage && <p className="mt-2 line-clamp-2 text-sm text-slate-600">{c.lastMessage}</p>}

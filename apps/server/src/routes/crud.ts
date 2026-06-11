@@ -80,14 +80,26 @@ crudRouter.get("/contacts/:id/messages", async (req: AuthedRequest, res) => {
   });
 });
 
-// Excluir conversas de um contato (apaga o histórico de mensagens) — só gestor/dono
+// Mover conversa para a pasta de apagados (soft delete) — só gestor/dono
 crudRouter.delete("/contacts/:id/conversations", requireRole("owner", "admin"), async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const contact = await prisma.contact.findFirst({ where: { id: String(req.params.id), orgId } });
   if (!contact) return res.status(404).json({ error: "not_found" });
 
-  const deleted = await prisma.conversation.deleteMany({ where: { orgId, contactId: contact.id } });
-  res.json({ ok: true, deleted: deleted.count });
+  await prisma.contact.update({ where: { id: contact.id }, data: { conversationDeletedAt: new Date() } });
+  await prisma.conversation.updateMany({ where: { orgId, contactId: contact.id }, data: { status: "deleted" } });
+  res.json({ ok: true });
+});
+
+// Restaurar conversa da pasta de apagados — só gestor/dono
+crudRouter.post("/contacts/:id/conversations/restore", requireRole("owner", "admin"), async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const contact = await prisma.contact.findFirst({ where: { id: String(req.params.id), orgId } });
+  if (!contact) return res.status(404).json({ error: "not_found" });
+
+  await prisma.contact.update({ where: { id: contact.id }, data: { conversationDeletedAt: null } });
+  await prisma.conversation.updateMany({ where: { orgId, contactId: contact.id }, data: { status: "open" } });
+  res.json({ ok: true });
 });
 
 // Pipelines & stages
