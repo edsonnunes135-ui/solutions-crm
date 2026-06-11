@@ -120,6 +120,43 @@ channelsRouter.post("/channels/send", async (req: AuthedRequest, res) => {
     }
   }
 
-  // Instagram: ainda não implementado
-  res.json({ ok: true, message: msg, sent: false, note: "instagram: em breve" });
+  // envio real via Instagram Messaging API (Meta)
+  if (parsed.data.channel === "instagram") {
+    const setting = await prisma.orgSetting.findUnique({ where: { orgId } });
+    const token = setting?.instagramAccessToken || process.env.INSTAGRAM_ACCESS_TOKEN;
+    const pageId = setting?.instagramPageId || process.env.INSTAGRAM_PAGE_ID;
+    const recipient = conv.externalId; // IG-scoped user id (vem do webhook)
+
+    if (!token || !pageId) {
+      return res.json({ ok: true, message: msg, sent: false, note: "configure o token e a Page ID do Instagram em Configurações" });
+    }
+    if (!recipient) {
+      return res.json({ ok: true, message: msg, sent: false, note: "conversa sem identidade externa (contato precisa ter mandado mensagem antes)" });
+    }
+
+    try {
+      const r = await fetch(`https://graph.facebook.com/v21.0/${pageId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          recipient: { id: recipient },
+          message: { text: parsed.data.text },
+          messaging_type: "RESPONSE",
+        }),
+      });
+      const data: any = await r.json();
+      if (!r.ok) {
+        return res.status(502).json({ ok: false, message: msg, sent: false, error: data?.error?.message ?? "meta_error" });
+      }
+      const externalId = data?.message_id ?? null;
+      if (externalId) {
+        await prisma.message.update({ where: { id: msg.id }, data: { externalId } });
+      }
+      return res.json({ ok: true, message: msg, sent: true, externalId });
+    } catch (err: any) {
+      return res.status(502).json({ ok: false, message: msg, sent: false, error: err.message });
+    }
+  }
+
+  res.json({ ok: true, message: msg, sent: false, note: "canal não suportado" });
 });

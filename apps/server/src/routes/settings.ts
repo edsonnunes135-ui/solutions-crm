@@ -14,14 +14,18 @@ settingsRouter.get("/settings", requireRole("owner", "admin"), async (req: Authe
   const s = await prisma.orgSetting.findUnique({ where: { orgId } });
   res.json({
     whatsappPhoneNumberId: s?.whatsappPhoneNumberId ?? "",
-    // nunca devolve o token completo — só indica se está configurado
+    instagramPageId: s?.instagramPageId ?? "",
+    // nunca devolve os tokens completos — só indica se estão configurados
     hasWhatsappToken: !!s?.whatsappAccessToken,
+    hasInstagramToken: !!s?.instagramAccessToken,
   });
 });
 
 const SettingsBody = z.object({
   whatsappAccessToken: z.string().optional(),
   whatsappPhoneNumberId: z.string().optional(),
+  instagramAccessToken: z.string().optional(),
+  instagramPageId: z.string().optional(),
 });
 
 settingsRouter.put("/settings", requireRole("owner", "admin"), async (req: AuthedRequest, res) => {
@@ -32,6 +36,8 @@ settingsRouter.put("/settings", requireRole("owner", "admin"), async (req: Authe
   const data: any = {};
   if (parsed.data.whatsappAccessToken) data.whatsappAccessToken = parsed.data.whatsappAccessToken;
   if (parsed.data.whatsappPhoneNumberId !== undefined) data.whatsappPhoneNumberId = parsed.data.whatsappPhoneNumberId;
+  if (parsed.data.instagramAccessToken) data.instagramAccessToken = parsed.data.instagramAccessToken;
+  if (parsed.data.instagramPageId !== undefined) data.instagramPageId = parsed.data.instagramPageId;
 
   const s = await prisma.orgSetting.upsert({
     where: { orgId },
@@ -48,7 +54,22 @@ settingsRouter.put("/settings", requireRole("owner", "admin"), async (req: Authe
     });
   }
 
-  res.json({ ok: true, whatsappPhoneNumberId: s.whatsappPhoneNumberId ?? "", hasWhatsappToken: !!s.whatsappAccessToken });
+  // mesma coisa para o Instagram (roteia o webhook pela page/ig id)
+  if (s.instagramPageId) {
+    await prisma.channelAccount.upsert({
+      where: { orgId_channel_externalAccountId: { orgId, channel: "instagram", externalAccountId: s.instagramPageId } } as any,
+      update: {},
+      create: { orgId, channel: "instagram", externalAccountId: s.instagramPageId, displayName: "Instagram principal" },
+    });
+  }
+
+  res.json({
+    ok: true,
+    whatsappPhoneNumberId: s.whatsappPhoneNumberId ?? "",
+    instagramPageId: s.instagramPageId ?? "",
+    hasWhatsappToken: !!s.whatsappAccessToken,
+    hasInstagramToken: !!s.instagramAccessToken,
+  });
 });
 
 // ── Equipe (gestão de acessos) ───────────────────────────────────────────────

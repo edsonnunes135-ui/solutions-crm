@@ -259,6 +259,8 @@ model OrgSetting {
   orgId                 String   @unique
   whatsappAccessToken   String?
   whatsappPhoneNumberId String?
+  instagramAccessToken  String?
+  instagramPageId       String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

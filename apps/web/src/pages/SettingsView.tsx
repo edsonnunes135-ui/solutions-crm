@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Settings, Phone, UserPlus, Trash2, CheckCircle2 } from "lucide-react";
+import { Phone, Instagram, UserPlus, Trash2, CheckCircle2 } from "lucide-react";
 import { apiGet, apiPost, apiPut, apiDelete } from "../lib/api";
 
 function Card({ children, className = "" }: any) {
@@ -25,6 +25,13 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
   const [waSaved, setWaSaved] = useState(false);
   const [waLoading, setWaLoading] = useState(false);
 
+  // Instagram
+  const [igPageId, setIgPageId] = useState("");
+  const [igToken, setIgToken] = useState("");
+  const [hasIgToken, setHasIgToken] = useState(false);
+  const [igSaved, setIgSaved] = useState(false);
+  const [igLoading, setIgLoading] = useState(false);
+
   // Equipe
   const [team, setTeam] = useState<any[]>([]);
   const [newMember, setNewMember] = useState({ name: "", email: "", password: "", role: "agent" });
@@ -35,6 +42,8 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
     apiGet("/settings", token).then((s) => {
       setWaPhoneId(s.whatsappPhoneNumberId ?? "");
       setHasToken(s.hasWhatsappToken);
+      setIgPageId(s.instagramPageId ?? "");
+      setHasIgToken(s.hasInstagramToken ?? false);
     }).catch(() => {});
     apiGet("/team", token).then(setTeam).catch(() => {});
   }, [token, isManager]);
@@ -54,6 +63,24 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
       alert(err.message);
     } finally {
       setWaLoading(false);
+    }
+  }
+
+  async function saveInstagram(e: React.FormEvent) {
+    e.preventDefault();
+    setIgLoading(true);
+    setIgSaved(false);
+    try {
+      const body: any = { instagramPageId: igPageId };
+      if (igToken.trim()) body.instagramAccessToken = igToken.trim();
+      const s = await apiPut("/settings", body, token);
+      setHasIgToken(s.hasInstagramToken);
+      setIgToken("");
+      setIgSaved(true);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIgLoading(false);
     }
   }
 
@@ -128,6 +155,38 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
             Webhook para configurar na Meta: <code className="rounded bg-slate-100 px-1">https://solutions-api.onrender.com/webhooks/meta</code><br />
             Token de verificação: <code className="rounded bg-slate-100 px-1">solutions_verify</code> • Campo a assinar: <code className="rounded bg-slate-100 px-1">messages</code>
           </div>
+        </div>
+      </Card>
+
+      {/* Instagram */}
+      <Card>
+        <div className="p-4 pb-3">
+          <div className="flex items-center gap-2 text-base font-semibold">
+            <Instagram className="h-4 w-4" /> Conexão Instagram (Messaging API)
+          </div>
+          <div className="text-sm text-slate-500">
+            Requer conta profissional vinculada a uma Página do Facebook. Token gerado no mesmo app da Meta, produto "Messenger/Instagram".
+          </div>
+        </div>
+        <div className="p-4 pt-0">
+          <form onSubmit={saveInstagram} className="space-y-3 max-w-xl">
+            <div>
+              <label className="mb-1 block text-sm font-medium">Page ID (página do Facebook vinculada)</label>
+              <Input value={igPageId} onChange={(e: any) => setIgPageId(e.target.value)} placeholder="ex.: 109876543210987" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                Token de acesso da página {hasIgToken && <span className="ml-1 inline-flex items-center gap-1 text-xs text-green-600"><CheckCircle2 className="h-3.5 w-3.5" /> configurado</span>}
+              </label>
+              <Input type="password" value={igToken} onChange={(e: any) => setIgToken(e.target.value)} placeholder={hasIgToken ? "•••••• (preencha só para substituir)" : "EAAxxxxxxx…"} />
+            </div>
+            <div className="flex items-center gap-3">
+              <button type="submit" disabled={igLoading} className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50">
+                {igLoading ? "Salvando…" : "Salvar conexão"}
+              </button>
+              {igSaved && <span className="text-sm text-green-600">Salvo! ✓</span>}
+            </div>
+          </form>
         </div>
       </Card>
 
