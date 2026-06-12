@@ -14,6 +14,7 @@ enum Channel {
 
 enum Role {
   owner
+  partner
   admin
   agent
   viewer

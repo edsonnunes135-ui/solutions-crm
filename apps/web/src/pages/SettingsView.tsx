@@ -11,7 +11,8 @@ function Input(props: any) {
 }
 
 const roleLabel: Record<string, string> = {
-  owner: "Dono",
+  owner: "CEO e Founder",
+  partner: "Sócio",
   admin: "Gestor",
   agent: "Vendedor",
   viewer: "Visualização",
@@ -215,7 +216,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
                     <td className="py-2 font-medium">{m.name}</td>
                     <td className="text-slate-600">{m.email}</td>
                     <td>
-                      <span className={`rounded-full border px-2 py-0.5 text-xs ${m.role === "owner" ? "border-amber-300 text-amber-700" : m.role === "admin" ? "border-blue-300 text-blue-700" : "text-slate-600"}`}>
+                      <span className={`rounded-full border px-2 py-0.5 text-xs ${m.role === "owner" ? "border-amber-300 text-amber-700" : m.role === "partner" ? "border-purple-300 text-purple-700" : m.role === "admin" ? "border-blue-300 text-blue-700" : "text-slate-600"}`}>
                         {roleLabel[m.role] ?? m.role}
                       </span>
                     </td>
@@ -245,6 +246,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
               >
                 <option value="agent">Vendedor</option>
                 <option value="admin">Gestor</option>
+                <option value="partner">Sócio</option>
                 <option value="viewer">Somente visualização</option>
               </select>
             </div>

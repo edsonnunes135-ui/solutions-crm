@@ -21,15 +21,17 @@ function KPI({ title, value, hint }: any) {
 }
 
 const roleLabel: Record<string, string> = {
-  owner: "Dono",
+  owner: "CEO e Founder",
+  partner: "Sócio",
   admin: "Gestor",
   agent: "Vendedor",
   viewer: "Visualização",
 };
 
-export default function ManagerView({ token }: { token: string }) {
+export default function ManagerView({ token, hideValues = false }: { token: string; hideValues?: boolean }) {
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState("");
+  const money = (v: number) => (hideValues ? "R$ ••••••" : currencyBRL(v));
 
   useEffect(() => {
     apiGet("/analytics/manager", token).then(setData).catch((e) => setError(e.message));
@@ -51,8 +53,8 @@ export default function ManagerView({ token }: { token: string }) {
         </div>
         <div className="p-4 pt-0">
           <div className="grid gap-3 md:grid-cols-4">
-            <KPI title="Receita (ganhos)" value={currencyBRL(t.revenue)} hint={`${t.dealsWon} negócios fechados`} />
-            <KPI title="Pipeline aberto" value={currencyBRL(t.pipelineValue)} hint={`${t.dealsOpen} em andamento`} />
+            <KPI title="Receita (ganhos)" value={money(t.revenue)} hint={`${t.dealsWon} negócios fechados`} />
+            <KPI title="Pipeline aberto" value={money(t.pipelineValue)} hint={`${t.dealsOpen} em andamento`} />
             <KPI title="Taxa de ganho" value={t.winRate !== null ? `${t.winRate}%` : "—"} hint={`${t.dealsLost} perdidos`} />
             <KPI title="Leads" value={t.contacts} hint={`${t.tasksOpen} tarefas abertas`} />
           </div>
@@ -92,7 +94,7 @@ export default function ManagerView({ token }: { token: string }) {
                           <TrendingUp className="h-3.5 w-3.5 text-green-600" /> {m.won}
                         </span>
                       </td>
-                      <td className="text-right font-medium">{currencyBRL(m.revenue)}</td>
+                      <td className="text-right font-medium">{money(m.revenue)}</td>
                     </tr>
                   ))}
                 </tbody>

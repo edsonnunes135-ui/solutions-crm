@@ -9,7 +9,7 @@ settingsRouter.use(requireAuth);
 
 // ── Configurações da organização (WhatsApp etc.) ─────────────────────────────
 
-settingsRouter.get("/settings", requireRole("owner", "admin"), async (req: AuthedRequest, res) => {
+settingsRouter.get("/settings", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const s = await prisma.orgSetting.findUnique({ where: { orgId } });
   res.json({
@@ -28,7 +28,7 @@ const SettingsBody = z.object({
   instagramPageId: z.string().optional(),
 });
 
-settingsRouter.put("/settings", requireRole("owner", "admin"), async (req: AuthedRequest, res) => {
+settingsRouter.put("/settings", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const parsed = SettingsBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
@@ -99,10 +99,10 @@ const MemberCreate = z.object({
     .min(8)
     .regex(/[a-zA-Z]/)
     .regex(/[0-9]/),
-  role: z.enum(["admin", "agent", "viewer"]),
+  role: z.enum(["partner", "admin", "agent", "viewer"]),
 });
 
-settingsRouter.post("/team", requireRole("owner", "admin"), async (req: AuthedRequest, res) => {
+settingsRouter.post("/team", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const parsed = MemberCreate.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", issues: parsed.error.issues });
@@ -121,7 +121,7 @@ settingsRouter.post("/team", requireRole("owner", "admin"), async (req: AuthedRe
   res.json({ ok: true, membershipId: membership.id, userId: user.id, name: user.name, email: user.email, role });
 });
 
-settingsRouter.delete("/team/:membershipId", requireRole("owner", "admin"), async (req: AuthedRequest, res) => {
+settingsRouter.delete("/team/:membershipId", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const m = await prisma.membership.findFirst({ where: { id: String(req.params.membershipId), orgId } });
   if (!m) return res.status(404).json({ error: "not_found" });
@@ -134,7 +134,7 @@ settingsRouter.delete("/team/:membershipId", requireRole("owner", "admin"), asyn
 
 // ── Painel do gestor ─────────────────────────────────────────────────────────
 
-settingsRouter.get("/analytics/manager", requireRole("owner", "admin"), async (req: AuthedRequest, res) => {
+settingsRouter.get("/analytics/manager", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
 
   const [deals, members, tasksOpen, contacts] = await Promise.all([

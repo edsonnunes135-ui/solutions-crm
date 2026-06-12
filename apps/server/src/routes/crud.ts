@@ -81,7 +81,7 @@ crudRouter.get("/contacts/:id/messages", async (req: AuthedRequest, res) => {
 });
 
 // Mover conversa para a pasta de apagados (soft delete) — só gestor/dono
-crudRouter.delete("/contacts/:id/conversations", requireRole("owner", "admin"), async (req: AuthedRequest, res) => {
+crudRouter.delete("/contacts/:id/conversations", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const contact = await prisma.contact.findFirst({ where: { id: String(req.params.id), orgId } });
   if (!contact) return res.status(404).json({ error: "not_found" });
@@ -92,7 +92,7 @@ crudRouter.delete("/contacts/:id/conversations", requireRole("owner", "admin"), 
 });
 
 // Restaurar conversa da pasta de apagados — só gestor/dono
-crudRouter.post("/contacts/:id/conversations/restore", requireRole("owner", "admin"), async (req: AuthedRequest, res) => {
+crudRouter.post("/contacts/:id/conversations/restore", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const contact = await prisma.contact.findFirst({ where: { id: String(req.params.id), orgId } });
   if (!contact) return res.status(404).json({ error: "not_found" });

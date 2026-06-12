@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MessageSquare, Users, KanbanSquare, Zap, LineChart as LineChartIcon,
   Sparkles, Search, Plus, Send, Clock, CheckCircle2, AlertCircle, Filter,
-  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2,
+  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff,
 } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
@@ -171,10 +171,20 @@ export default function App() {
 function CRMApp({ onLogout }: { onLogout: () => void }) {
   const token = getToken()!;
   const user = getUser();
-  const isManager = user?.role === "owner" || user?.role === "admin";
+  const isManager = user?.role === "owner" || user?.role === "partner" || user?.role === "admin";
 
   const [view, setView] = useState<View>("inbox");
   const [q, setQ] = useState("");
+
+  // Modo privacidade: oculta valores financeiros (persiste entre sessões)
+  const [hideValues, setHideValues] = useState(() => localStorage.getItem("solutions_hide_values") === "1");
+  function toggleHideValues() {
+    setHideValues((p) => {
+      localStorage.setItem("solutions_hide_values", p ? "0" : "1");
+      return !p;
+    });
+  }
+  const money = (v: number) => (hideValues ? "R$ ••••••" : currencyBRL(v));
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const [contacts, setContacts] = useState<any[]>([]);
@@ -594,6 +604,13 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
             <Button className="gap-2" onClick={() => setShowNewContact(true)}>
               <Plus className="h-4 w-4" /> Novo lead
             </Button>
+            <button
+              onClick={toggleHideValues}
+              className="rounded-2xl border border-white/30 bg-white/10 p-2 text-white hover:bg-white/20"
+              title={hideValues ? "Mostrar valores" : "Ocultar valores"}
+            >
+              {hideValues ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
             <button onClick={logout} className="rounded-2xl border border-white/30 bg-white/10 p-2 text-white hover:bg-white/20" title="Sair">
               <LogOut className="h-4 w-4" />
             </button>
@@ -626,7 +643,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
               <div className="grid gap-2">
                 <div className="rounded-2xl border p-3">
                   <div className="text-xs text-slate-500">Pipeline aberto</div>
-                  <div className="mt-1 text-base font-semibold">{currencyBRL(kpis?.pipelineValue ?? pipelineValue)}</div>
+                  <div className="mt-1 text-base font-semibold">{money(kpis?.pipelineValue ?? pipelineValue)}</div>
                 </div>
                 <div className="rounded-2xl border p-3">
                   <div className="text-xs text-slate-500">Tarefas abertas</div>
@@ -819,7 +836,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                 <div className="mb-4 flex items-center justify-between">
                   <div>
                     <h2 className="text-base font-semibold">{activePipeline?.name ?? "Funil"}</h2>
-                    <p className="text-sm text-slate-500">{deals.length} negócios • {currencyBRL(pipelineValue)} em aberto</p>
+                    <p className="text-sm text-slate-500">{deals.length} negócios • {money(pipelineValue)} em aberto</p>
                   </div>
                   <Button className="gap-2" onClick={() => setShowNewDeal(true)}>
                     <Plus className="h-4 w-4" /> Novo negócio
@@ -856,7 +873,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                                 <div className="text-base font-semibold">{s.name}</div>
                                 <Pill>{stageDeals.length}</Pill>
                               </div>
-                              <div className="text-sm text-slate-500">{currencyBRL(stageDeals.reduce((a, d) => a + (d.value ?? 0), 0))}</div>
+                              <div className="text-sm text-slate-500">{money(stageDeals.reduce((a, d) => a + (d.value ?? 0), 0))}</div>
                             </CardHeader>
                             <CardContent className="space-y-2">
                               {stageDeals.map((d) => (
@@ -872,7 +889,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                                       <Trash2 className="h-3.5 w-3.5" />
                                     </button>
                                   </div>
-                                  <div className="mt-1 text-xs text-slate-500">{currencyBRL(d.value ?? 0)} • {d.contact?.name ?? "—"}</div>
+                                  <div className="mt-1 text-xs text-slate-500">{money(d.value ?? 0)} • {d.contact?.name ?? "—"}</div>
                                   <div className="mt-3 flex flex-wrap gap-1">
                                     {stages.filter((x: any) => x.id !== s.id).slice(0, 3).map((x: any) => (
                                       <Button key={x.id} variant="outline" className="px-2 py-1 text-xs" onClick={() => moveDeal(d.id, x.id)}>
@@ -1023,7 +1040,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                     <div className="grid gap-3 md:grid-cols-3">
                       <KPI title="Leads (total)" value={kpis?.leads ?? contacts.length} hint="Contatos cadastrados" />
                       <KPI title="Negócios abertos" value={kpis?.openDeals ?? deals.filter((d) => d.status === "open").length} hint="No funil ativo" />
-                      <KPI title="Pipeline" value={currencyBRL(kpis?.pipelineValue ?? pipelineValue)} hint="Valor em aberto" />
+                      <KPI title="Pipeline" value={money(kpis?.pipelineValue ?? pipelineValue)} hint="Valor em aberto" />
                     </div>
                     <div className="my-4 h-px bg-slate-200" />
                     <div className="h-[320px]">
@@ -1056,7 +1073,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
             )}
 
             {/* ── MANAGER ── */}
-            {view === "manager" && <ManagerView token={token} />}
+            {view === "manager" && <ManagerView token={token} hideValues={hideValues} />}
 
             {/* ── SETTINGS ── */}
             {view === "settings" && <SettingsView token={token} isManager={isManager} />}
