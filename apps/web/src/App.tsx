@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MessageSquare, Users, KanbanSquare, Zap, LineChart as LineChartIcon,
   Sparkles, Search, Plus, Send, Clock, CheckCircle2, AlertCircle, Filter,
-  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff,
+  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck,
 } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
@@ -10,8 +10,10 @@ import { clearAuth, getToken, getUser } from "./lib/auth";
 import AuthPage from "./pages/AuthPage";
 import ManagerView from "./pages/ManagerView";
 import SettingsView from "./pages/SettingsView";
+import AutomationsView from "./pages/AutomationsView";
+import CampaignsView from "./pages/CampaignsView";
 
-type View = "inbox" | "pipeline" | "contacts" | "automations" | "analytics" | "ai" | "manager" | "settings";
+type View = "inbox" | "pipeline" | "contacts" | "automations" | "analytics" | "ai" | "manager" | "settings" | "campaigns";
 
 // ── UI primitives ────────────────────────────────────────────────────────────
 
@@ -194,11 +196,13 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   const [kpis, setKpis] = useState<any>(null);
   const [automations, setAutomations] = useState<any[]>([]);
   const [series, setSeries] = useState<any[]>([]);
+  const [team, setTeam] = useState<any[]>([]);
+  const [billing, setBilling] = useState<any>(null);
   const [loadingData, setLoadingData] = useState(true);
 
   const reload = useCallback(async () => {
     try {
-      const [c, d, t, p, k, a, s] = await Promise.all([
+      const [c, d, t, p, k, a, s, tm, b] = await Promise.all([
         apiGet("/contacts", token),
         apiGet("/deals", token),
         apiGet("/tasks", token),
@@ -206,6 +210,8 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
         apiGet("/analytics/kpis", token),
         apiGet("/automations", token),
         apiGet("/analytics/series", token).catch(() => []),
+        apiGet("/team", token).catch(() => []),
+        apiGet("/billing", token).catch(() => null),
       ]);
       setContacts(c);
       setDeals(d);
@@ -214,6 +220,8 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
       setKpis(k);
       setAutomations(a);
       setSeries(s);
+      setTeam(tm);
+      setBilling(b);
     } catch {
       // silently ignore — token may have expired
     } finally {
@@ -264,6 +272,28 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
       alert(`Não foi possível excluir: ${err.message}`);
       await reload();
     }
+  }
+
+  // Fila de atendimento
+  async function updateConversation(conversationId: string, data: any) {
+    try {
+      await apiPatch(`/conversations/${conversationId}`, data, token);
+      await reload();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
+
+  function memberName(userId: string | null) {
+    if (!userId) return null;
+    return team.find((m) => m.userId === userId)?.name ?? "—";
+  }
+
+  function QueueChip({ conv }: { conv: any }) {
+    if (!conv) return null;
+    if (conv.status === "resolved") return <span className="rounded-full border border-green-300 bg-green-50 px-2 py-0.5 text-xs text-green-700">Resolvido</span>;
+    if (conv.assigneeId) return <span className="rounded-full border border-blue-300 bg-blue-50 px-2 py-0.5 text-xs text-blue-700">{memberName(conv.assigneeId)?.split(" ")[0] ?? "Em atendimento"}</span>;
+    return <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">Aguardando</span>;
   }
 
   async function restoreConversation(contactId: string) {
@@ -617,6 +647,19 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
           </div>
         </header>
 
+        {billing?.trialDaysLeft !== null && billing?.trialDaysLeft !== undefined && (
+          <div className="mt-4 flex items-center justify-between rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <span>
+              ⏳ <strong>Teste grátis:</strong> {billing.trialDaysLeft} dia(s) restante(s).
+            </span>
+            {isManager && (
+              <button onClick={() => setView("settings")} className="rounded-2xl bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-600">
+                Ver planos
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="mt-6 grid gap-4 md:grid-cols-[260px_1fr]">
           {/* Sidebar */}
           <Card>
@@ -635,6 +678,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                 <>
                   <div className="my-2 h-px bg-slate-200" />
                   <NavItem icon={<Crown className="h-4 w-4 text-amber-500" />} active={view === "manager"} onClick={() => setView("manager")} label="Gestão" />
+                  <NavItem icon={<Megaphone className="h-4 w-4 text-orange-500" />} active={view === "campaigns"} onClick={() => setView("campaigns")} label="Campanhas" />
                   <NavItem icon={<SettingsIcon className="h-4 w-4" />} active={view === "settings"} onClick={() => setView("settings")} label="Configurações" />
                 </>
               )}
@@ -723,7 +767,8 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-2">
                                     <span className="truncate font-medium">{c.name}</span>
-                                    {c.channel && <ChannelBadge c={c.channel} />}
+                                    {(c.conversation?.channel || c.channel) && <ChannelBadge c={c.conversation?.channel ?? c.channel} />}
+                                    <QueueChip conv={c.conversation} />
                                   </div>
                                   <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
                                     <Building2 className="h-3.5 w-3.5" />
@@ -770,9 +815,32 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <div className="truncate text-base font-semibold">{selectedContact?.name ?? "Selecione um contato"}</div>
-                        <div className="truncate text-sm text-slate-500">{selectedContact?.company ?? ""}</div>
+                        <div className="truncate text-sm text-slate-500">
+                          {selectedContact?.company ?? ""}
+                          {selectedContact?.conversation?.assigneeId && ` • Atendente: ${memberName(selectedContact.conversation.assigneeId)}`}
+                        </div>
                       </div>
-                      {selectedContact?.channel && <ChannelBadge c={selectedContact.channel} />}
+                      <div className="flex shrink-0 items-center gap-2">
+                        {selectedContact?.conversation && (
+                          <>
+                            {selectedContact.conversation.status !== "resolved" && selectedContact.conversation.assigneeId !== user?.id && (
+                              <Button variant="outline" className="gap-1 px-2 py-1 text-xs" onClick={() => updateConversation(selectedContact.conversation.id, { assigneeId: user?.id })}>
+                                <UserCheck className="h-3.5 w-3.5" /> Assumir
+                              </Button>
+                            )}
+                            {selectedContact.conversation.status !== "resolved" ? (
+                              <Button variant="outline" className="gap-1 px-2 py-1 text-xs" onClick={() => updateConversation(selectedContact.conversation.id, { status: "resolved" })}>
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Resolver
+                              </Button>
+                            ) : (
+                              <Button variant="outline" className="gap-1 px-2 py-1 text-xs" onClick={() => updateConversation(selectedContact.conversation.id, { status: "open" })}>
+                                Reabrir
+                              </Button>
+                            )}
+                          </>
+                        )}
+                        {selectedContact?.channel && <ChannelBadge c={selectedContact.conversation?.channel ?? selectedContact.channel} />}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -991,42 +1059,11 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
             {/* ── AUTOMATIONS ── */}
             {view === "automations" && (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-base font-semibold">Automações</div>
-                      <div className="text-sm text-slate-500">Motor de eventos ativo — {automations.length} fluxos cadastrados</div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {automations.length > 0 ? (
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {automations.map((a) => (
-                        <AutomationCard
-                          key={a.id}
-                          title={a.name}
-                          trigger={a.triggerType}
-                          actions={Array.isArray(a.actions) ? a.actions.map((x: any) => x.type ?? JSON.stringify(x)) : [JSON.stringify(a.actions)]}
-                          enabled={a.enabled}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <AutomationCard title="Lead sem resposta em 15 min" trigger="message_received" actions={["Criar tarefa alta prioridade", "Adicionar tag: Sem resposta"]} />
-                      <AutomationCard title="Entrou em Proposta" trigger="stage_changed" actions={["Gerar tarefa: Follow-up 24h", "Enviar template WhatsApp"]} />
-                      <AutomationCard title="Reativação 30 dias" trigger="inactivity" actions={["Mover para funil de apoio", "Criar tarefa: ligação"]} />
-                      <AutomationCard title="Não-lead (atendimento)" trigger="message_received" actions={["Mover para funil de não-leads", "Criar ticket"]} />
-                    </div>
-                  )}
-                  <div className="rounded-2xl border p-4 text-sm text-slate-500">
-                    Motor de automações: gatilhos por evento (mensagem/etapa/tag), condições e ações (tarefas, mensagens, webhooks) — com logs e execução assíncrona via BullMQ.
-                  </div>
-                </CardContent>
-              </Card>
+              <AutomationsView token={token} automations={automations} onChanged={reload} />
             )}
+
+            {/* ── CAMPAIGNS ── */}
+            {view === "campaigns" && <CampaignsView token={token} contacts={contacts} />}
 
             {/* ── ANALYTICS ── */}
             {view === "analytics" && (

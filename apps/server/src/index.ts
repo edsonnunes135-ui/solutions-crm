@@ -14,6 +14,8 @@ import { channelsRouter } from "./routes/channels";
 import { aiRouter } from "./routes/ai";
 import { devRouter } from "./routes/dev";
 import { settingsRouter } from "./routes/settings";
+import { billingRouter } from "./routes/billing";
+import { broadcastRouter } from "./routes/broadcast";
 
 dotenv.config();
 
@@ -52,8 +54,15 @@ app.use(channelsRouter);
 app.use(aiRouter);
 app.use(devRouter);
 app.use(settingsRouter);
+app.use(billingRouter);
+app.use(broadcastRouter);
 
 const port = Number(process.env.PORT || 4000);
 app.listen(port, () => {
   console.log(`Solutions API running on http://localhost:${port}`);
 });
+
+// Motor de automações embutido (mesmo processo da API — funciona no plano free)
+import("./worker")
+  .then((m) => m.startWorker())
+  .catch((err) => console.error("worker_failed_to_start", err?.message ?? err));

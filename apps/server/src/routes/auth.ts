@@ -27,7 +27,9 @@ authRouter.post("/auth/register", async (req, res) => {
   const exists = await prisma.user.findUnique({ where: { email } });
   if (exists) return res.status(409).json({ error: "email_in_use" });
 
-  const org = await prisma.organization.create({ data: { name: orgName } });
+  const trialEndsAt = new Date();
+  trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+  const org = await prisma.organization.create({ data: { name: orgName, trialEndsAt } });
   const user = await prisma.user.create({
     data: { name, email, password: await bcrypt.hash(password, 10) },
   });

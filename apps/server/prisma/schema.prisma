@@ -26,10 +26,12 @@ enum TaskStatus {
 }
 
 model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String    @id @default(cuid())
+  name        String
+  plan        String    @default("trial") // trial/starter/pro/business
+  trialEndsAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   users             Membership[]
   contacts          Contact[]
@@ -100,7 +102,8 @@ model Conversation {
   contactId  String
   channel    Channel
   externalId String? // id do canal (wa thread / ig thread)
-  status     String   @default("open")
+  status     String   @default("open") // open/resolved/deleted
+  assigneeId String? // atendente responsável
   lastAt     DateTime @default(now())
 
   org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireAuth, AuthedRequest } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
+import { sendChannelMessage } from "../lib/send";
 
 /**
  * Endpoints de envio (stub).
@@ -65,98 +66,26 @@ channelsRouter.post("/channels/send", async (req: AuthedRequest, res) => {
   const parsed = SendSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
 
-  const conv = await prisma.conversation.findFirst({
-    where: { id: parsed.data.conversationId, orgId },
-  });
-  if (!conv) return res.status(404).json({ error: "conversation_not_found" });
-
-  // registra a mensagem outbound localmente
-  const msg = await prisma.message.create({
-    data: {
-      orgId,
-      conversationId: conv.id,
-      channel: parsed.data.channel,
-      direction: "outbound",
-      text: parsed.data.text,
-    },
+  const r = await sendChannelMessage({
+    orgId,
+    conversationId: parsed.data.conversationId,
+    channel: parsed.data.channel,
+    text: parsed.data.text,
   });
 
-  // envio real via WhatsApp Cloud API (Meta)
-  if (parsed.data.channel === "whatsapp") {
-    const setting = await prisma.orgSetting.findUnique({ where: { orgId } });
-    const token = setting?.whatsappAccessToken || process.env.WHATSAPP_ACCESS_TOKEN;
-    const phoneNumberId = setting?.whatsappPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const recipient = conv.externalId; // wa id do contato (vem do webhook)
+  if (r.error === "conversation_not_found") return res.status(404).json({ error: r.error });
 
-    if (!token || !phoneNumberId) {
-      return res.json({ ok: true, message: msg, sent: false, note: "configure WHATSAPP_ACCESS_TOKEN e WHATSAPP_PHONE_NUMBER_ID" });
-    }
-    if (!recipient) {
-      return res.json({ ok: true, message: msg, sent: false, note: "conversa sem identidade externa (contato precisa ter mandado mensagem antes)" });
-    }
+  const noteMap: Record<string, string> = {
+    whatsapp_not_configured: "configure o WhatsApp em Configurações",
+    instagram_not_configured: "configure o Instagram em Configurações",
+    no_external_identity: "conversa sem identidade externa (contato precisa ter mandado mensagem antes)",
+  };
 
-    try {
-      const r = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: recipient,
-          type: "text",
-          text: { body: parsed.data.text },
-        }),
-      });
-      const data: any = await r.json();
-      if (!r.ok) {
-        return res.status(502).json({ ok: false, message: msg, sent: false, error: data?.error?.message ?? "meta_error" });
-      }
-      const externalId = data?.messages?.[0]?.id ?? null;
-      if (externalId) {
-        await prisma.message.update({ where: { id: msg.id }, data: { externalId } });
-      }
-      return res.json({ ok: true, message: msg, sent: true, externalId });
-    } catch (err: any) {
-      return res.status(502).json({ ok: false, message: msg, sent: false, error: err.message });
-    }
-  }
-
-  // envio real via Instagram Messaging API (Meta)
-  if (parsed.data.channel === "instagram") {
-    const setting = await prisma.orgSetting.findUnique({ where: { orgId } });
-    const token = setting?.instagramAccessToken || process.env.INSTAGRAM_ACCESS_TOKEN;
-    const pageId = setting?.instagramPageId || process.env.INSTAGRAM_PAGE_ID;
-    const recipient = conv.externalId; // IG-scoped user id (vem do webhook)
-
-    if (!token || !pageId) {
-      return res.json({ ok: true, message: msg, sent: false, note: "configure o token e a Page ID do Instagram em Configurações" });
-    }
-    if (!recipient) {
-      return res.json({ ok: true, message: msg, sent: false, note: "conversa sem identidade externa (contato precisa ter mandado mensagem antes)" });
-    }
-
-    try {
-      const r = await fetch(`https://graph.facebook.com/v21.0/${pageId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          recipient: { id: recipient },
-          message: { text: parsed.data.text },
-          messaging_type: "RESPONSE",
-        }),
-      });
-      const data: any = await r.json();
-      if (!r.ok) {
-        return res.status(502).json({ ok: false, message: msg, sent: false, error: data?.error?.message ?? "meta_error" });
-      }
-      const externalId = data?.message_id ?? null;
-      if (externalId) {
-        await prisma.message.update({ where: { id: msg.id }, data: { externalId } });
-      }
-      return res.json({ ok: true, message: msg, sent: true, externalId });
-    } catch (err: any) {
-      return res.status(502).json({ ok: false, message: msg, sent: false, error: err.message });
-    }
-  }
-
-  res.json({ ok: true, message: msg, sent: false, note: "canal não suportado" });
+  res.json({
+    ok: !r.error,
+    sent: r.sent,
+    externalId: r.externalId ?? null,
+    note: r.note ? noteMap[r.note] ?? r.note : r.error,
+    messageId: r.messageId,
+  });
 });

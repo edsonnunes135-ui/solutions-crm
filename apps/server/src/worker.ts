@@ -4,6 +4,7 @@ dotenv.config();
 import { Worker } from "bullmq";
 import { prisma } from "./lib/prisma";
 import { redisConnection } from "./lib/queue";
+import { sendChannelMessage } from "./lib/send";
 
 type JobData = { eventId: string };
 
@@ -141,7 +142,6 @@ async function executeAction(orgId: string, event: any, action: Action) {
     }
 
     case "send_message": {
-      // MVP: grava mensagem outbound local. Integração real: enviar para canal oficial e salvar externalId/status.
       const conversationId = (event.payload as any)?.conversationId as string | undefined;
       const channel = (action.channel as any) ?? (event.payload as any)?.channel ?? "whatsapp";
       const text = action.text ?? (action.template ? `[template:${action.template}]` : "Mensagem");
@@ -167,19 +167,9 @@ async function executeAction(orgId: string, event: any, action: Action) {
 
       if (!convId) return { ok: false, skipped: "no_conversation" };
 
-      const msg = await prisma.message.create({
-        data: {
-          orgId,
-          conversationId: convId,
-          channel,
-          direction: "outbound",
-          text,
-        },
-      });
-
-      await prisma.conversation.update({ where: { id: convId }, data: { lastAt: new Date() } });
-
-      return { ok: true, created: { messageId: msg.id }, sent: false };
+      // envio real pelo canal (se credenciais configuradas); registra a mensagem sempre
+      const r = await sendChannelMessage({ orgId, conversationId: convId, channel, text });
+      return { ok: true, created: { messageId: r.messageId }, sent: r.sent, note: r.note ?? r.error };
     }
 
 case "add_tag": {
@@ -303,14 +293,14 @@ async function evaluateConditions(orgId: string, event: any, conditions: any) {
 }
 
 /**
- * Worker — agora executa 3 actions essenciais:
- * - create_task
- * - move_to_pipeline
- * - send_message (stub)
+ * Worker de automações. Em produção roda embutido no processo da API
+ * (startWorker é chamado pelo index.ts); também pode rodar standalone
+ * via `npm run worker`.
  */
-const worker = new Worker<JobData>(
-  "events",
-  async (job) => {
+export function startWorker() {
+  const worker = new Worker<JobData>(
+    "events",
+    async (job) => {
     const event = await prisma.event.findUnique({ where: { id: job.data.eventId } });
     if (!event || event.processed) return;
 
@@ -363,12 +353,18 @@ const worker = new Worker<JobData>(
       }
     }
 
-    await prisma.event.update({ where: { id: event.id }, data: { processed: true } });
-    return { processed: true, ran: automations.length, logs };
-  },
-  { connection: redisConnection }
-);
+      await prisma.event.update({ where: { id: event.id }, data: { processed: true } });
+      return { processed: true, ran: automations.length, logs };
+    },
+    { connection: redisConnection }
+  );
 
-worker.on("completed", (job) => console.log("job completed", job.id));
-worker.on("failed", (job, err) => console.error("job failed", job?.id, err));
-console.log("Solutions worker running (queue: events)");
+  worker.on("completed", (job) => console.log("job completed", job.id));
+  worker.on("failed", (job, err) => console.error("job failed", job?.id, err));
+  console.log("Solutions worker running (queue: events)");
+  return worker;
+}
+
+// execução standalone: npx tsx src/worker.ts
+const isMain = process.argv[1]?.replace(/\\/g, "/").endsWith("worker.ts");
+if (isMain) startWorker();

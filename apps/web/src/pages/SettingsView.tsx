@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Phone, Instagram, UserPlus, Trash2, CheckCircle2 } from "lucide-react";
+import { Phone, Instagram, UserPlus, Trash2, CheckCircle2, CreditCard } from "lucide-react";
 import { apiGet, apiPost, apiPut, apiDelete } from "../lib/api";
 
 function Card({ children, className = "" }: any) {
@@ -33,6 +33,10 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
   const [igSaved, setIgSaved] = useState(false);
   const [igLoading, setIgLoading] = useState(false);
 
+  // Plano
+  const [billing, setBilling] = useState<any>(null);
+  const [planMsg, setPlanMsg] = useState("");
+
   // Equipe
   const [team, setTeam] = useState<any[]>([]);
   const [newMember, setNewMember] = useState({ name: "", email: "", password: "", role: "agent" });
@@ -47,7 +51,21 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
       setHasIgToken(s.hasInstagramToken ?? false);
     }).catch(() => {});
     apiGet("/team", token).then(setTeam).catch(() => {});
+    apiGet("/billing", token).then(setBilling).catch(() => {});
   }, [token, isManager]);
+
+  async function choosePlan(planKey: string, planName: string, price: number) {
+    if (!confirm(`Ativar o plano ${planName} (R$ ${price}/usuário/mês)?\n\nA cobrança automática (cartão/Pix) será ativada em breve — por enquanto o plano é liberado direto.`)) return;
+    setPlanMsg("");
+    try {
+      await apiPut("/billing/plan", { plan: planKey }, token);
+      const b = await apiGet("/billing", token);
+      setBilling(b);
+      setPlanMsg(`Plano ${planName} ativado! 🎉`);
+    } catch (err: any) {
+      setPlanMsg(`Erro: ${err.message}`);
+    }
+  }
 
   async function saveWhatsApp(e: React.FormEvent) {
     e.preventDefault();
@@ -123,6 +141,59 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
 
   return (
     <div className="space-y-4">
+      {/* Plano e cobrança */}
+      <Card>
+        <div className="p-4 pb-3">
+          <div className="flex items-center gap-2 text-base font-semibold">
+            <CreditCard className="h-4 w-4" /> Plano e cobrança
+          </div>
+          {billing && (
+            <div className="text-sm text-slate-500">
+              Plano atual: <span className="font-medium text-slate-900">{billing.planName}</span>
+              {billing.trialDaysLeft !== null && ` — ${billing.trialDaysLeft} dia(s) restante(s) de teste`}
+              {" • "}{billing.usage.users}/{billing.limits.users >= 999 ? "∞" : billing.limits.users} usuários
+              {" • "}{billing.usage.contacts}/{billing.limits.contacts >= 100000 ? "∞" : billing.limits.contacts} contatos
+            </div>
+          )}
+        </div>
+        <div className="p-4 pt-0">
+          {billing && (
+            <div className="grid gap-3 md:grid-cols-3">
+              {billing.plans.map((p: any) => {
+                const isCurrent = billing.plan === p.key;
+                const featured = p.key === "pro";
+                return (
+                  <div key={p.key} className={`rounded-2xl border p-4 ${featured ? "border-slate-900 ring-1 ring-slate-900" : ""}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="font-semibold">{p.name}</div>
+                      {featured && <span className="rounded-full bg-slate-900 px-2 py-0.5 text-xs text-white">Popular</span>}
+                    </div>
+                    <div className="mt-2 text-2xl font-bold">R$ {p.price}<span className="text-sm font-normal text-slate-500">/usuário/mês</span></div>
+                    <ul className="mt-3 space-y-1 text-sm text-slate-600">
+                      <li>• {p.users >= 999 ? "Usuários ilimitados" : `Até ${p.users} usuários`}</li>
+                      <li>• {p.contacts >= 100000 ? "Contatos ilimitados" : `${p.contacts.toLocaleString("pt-BR")} contatos`}</li>
+                      <li>• {p.automations >= 999 ? "Automações ilimitadas" : `${p.automations} automações`}</li>
+                      <li>• {p.broadcast ? "✅ Campanhas em massa" : "— Sem campanhas"}</li>
+                    </ul>
+                    <button
+                      onClick={() => choosePlan(p.key, p.name, p.price)}
+                      disabled={isCurrent}
+                      className={`mt-4 w-full rounded-2xl py-2 text-sm font-medium transition ${isCurrent ? "bg-slate-100 text-slate-400" : "bg-slate-900 text-white hover:bg-slate-800"}`}
+                    >
+                      {isCurrent ? "Plano atual" : "Ativar plano"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {planMsg && <div className={`mt-3 text-sm ${planMsg.startsWith("Erro") ? "text-red-600" : "text-green-600"}`}>{planMsg}</div>}
+          <div className="mt-4 rounded-2xl border p-3 text-xs text-slate-500">
+            💳 Cobrança automática por cartão e Pix (Stripe/Mercado Pago) será ativada em breve. Até lá, a troca de plano é liberada manualmente.
+          </div>
+        </div>
+      </Card>
+
       {/* WhatsApp */}
       <Card>
         <div className="p-4 pb-3">

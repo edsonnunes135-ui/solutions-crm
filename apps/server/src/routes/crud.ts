@@ -14,12 +14,22 @@ crudRouter.get("/contacts", async (req: AuthedRequest, res) => {
   const items = await prisma.contact.findMany({
     where: { orgId },
     orderBy: { updatedAt: "desc" },
-    include: { tags: { include: { tag: true } } },
+    include: {
+      tags: { include: { tag: true } },
+      conversations: {
+        where: { status: { not: "deleted" } },
+        orderBy: { lastAt: "desc" },
+        take: 1,
+        select: { id: true, status: true, assigneeId: true, channel: true },
+      },
+    },
     take: 200,
   });
   res.json(items.map(c => ({
     ...c,
     tags: c.tags.map(t => t.tag.name),
+    conversation: c.conversations[0] ?? null,
+    conversations: undefined,
   })));
 });
 
@@ -78,6 +88,29 @@ crudRouter.get("/contacts/:id/messages", async (req: AuthedRequest, res) => {
     channel: conversations[0]?.channel ?? "whatsapp",
     messages,
   });
+});
+
+// Fila de atendimento: assumir / resolver / reabrir conversa
+crudRouter.patch("/conversations/:id", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const Body = z.object({
+    assigneeId: z.string().nullable().optional(),
+    status: z.enum(["open", "resolved"]).optional(),
+  });
+  const parsed = Body.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+
+  const conv = await prisma.conversation.findFirst({ where: { id: String(req.params.id), orgId } });
+  if (!conv) return res.status(404).json({ error: "not_found" });
+
+  const updated = await prisma.conversation.update({
+    where: { id: conv.id },
+    data: {
+      ...(parsed.data.assigneeId !== undefined ? { assigneeId: parsed.data.assigneeId } : {}),
+      ...(parsed.data.status ? { status: parsed.data.status } : {}),
+    },
+  });
+  res.json(updated);
 });
 
 // Mover conversa para a pasta de apagados (soft delete) — só gestor/dono
@@ -276,6 +309,27 @@ const AutomationCreate = z.object({
   conditions: z.any().optional(),
   actions: z.any(),
   enabled: z.boolean().optional(),
+});
+
+crudRouter.patch("/automations/:id", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const Body = z.object({ enabled: z.boolean() });
+  const parsed = Body.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+
+  const updated = await prisma.automation.updateMany({
+    where: { id: String(req.params.id), orgId },
+    data: { enabled: parsed.data.enabled },
+  });
+  if (updated.count === 0) return res.status(404).json({ error: "not_found" });
+  res.json({ ok: true, enabled: parsed.data.enabled });
+});
+
+crudRouter.delete("/automations/:id", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const deleted = await prisma.automation.deleteMany({ where: { id: String(req.params.id), orgId } });
+  if (deleted.count === 0) return res.status(404).json({ error: "not_found" });
+  res.json({ ok: true });
 });
 
 crudRouter.post("/automations", async (req: AuthedRequest, res) => {
