@@ -61,3 +61,13 @@ billingRouter.put("/billing/plan", requireRole("owner", "partner"), async (req: 
   });
   res.json({ ok: true, plan: org.plan });
 });
+
+// Desativar plano (volta ao gratuito) — exclusivo do CEO e Founder
+billingRouter.delete("/billing/plan", requireRole("owner"), async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const org = await prisma.organization.update({
+    where: { id: orgId },
+    data: { plan: "trial", trialEndsAt: null },
+  });
+  res.json({ ok: true, plan: org.plan });
+});

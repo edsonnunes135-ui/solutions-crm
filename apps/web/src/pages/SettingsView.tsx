@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Phone, Instagram, UserPlus, Trash2, CheckCircle2, CreditCard } from "lucide-react";
 import { apiGet, apiPost, apiPut, apiDelete } from "../lib/api";
+import { getUser } from "../lib/auth";
 
 function Card({ children, className = "" }: any) {
   return <div className={`rounded-2xl border bg-white ${className}`}>{children}</div>;
@@ -19,6 +20,7 @@ const roleLabel: Record<string, string> = {
 };
 
 export default function SettingsView({ token, isManager }: { token: string; isManager: boolean }) {
+  const isOwner = getUser()?.role === "owner";
   // WhatsApp
   const [waPhoneId, setWaPhoneId] = useState("");
   const [waToken, setWaToken] = useState("");
@@ -100,6 +102,19 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
       alert(err.message);
     } finally {
       setIgLoading(false);
+    }
+  }
+
+  async function deactivatePlan() {
+    if (!confirm("Desativar o plano atual e voltar ao plano gratuito?\n\nRecursos pagos (como campanhas em massa) serão bloqueados.")) return;
+    setPlanMsg("");
+    try {
+      await apiDelete("/billing/plan", token);
+      const b = await apiGet("/billing", token);
+      setBilling(b);
+      setPlanMsg("Plano desativado — sua conta voltou ao plano gratuito.");
+    } catch (err: any) {
+      setPlanMsg(`Erro: ${err.message}`);
     }
   }
 
@@ -188,8 +203,13 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
             </div>
           )}
           {planMsg && <div className={`mt-3 text-sm ${planMsg.startsWith("Erro") ? "text-red-600" : "text-green-600"}`}>{planMsg}</div>}
+          {isOwner && billing && billing.plan !== "trial" && (
+            <button onClick={deactivatePlan} className="mt-3 text-sm text-red-600 underline hover:text-red-700">
+              Desativar plano atual (voltar ao gratuito)
+            </button>
+          )}
           <div className="mt-4 rounded-2xl border p-3 text-xs text-slate-500">
-            💳 Cobrança automática por cartão e Pix (Stripe/Mercado Pago) será ativada em breve. Até lá, a troca de plano é liberada manualmente.
+            💳 Cobrança automática por cartão e Pix (Mercado Pago) será ativada em breve. Até lá, a troca de plano é liberada manualmente.
           </div>
         </div>
       </Card>
