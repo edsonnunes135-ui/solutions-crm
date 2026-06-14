@@ -104,10 +104,28 @@ interface Props {
 }
 
 export default function LandingPage({ onEnter, onSignup }: Props) {
+  const [annual, setAnnual] = useState(false);
   const plans = [
     { name: "Starter", price: 49, featured: false, items: ["2 usuários", "1.000 contatos", "WhatsApp + Instagram", "Funil e tarefas", "5 automações"] },
     { name: "Pro", price: 99, featured: true, items: ["10 usuários", "10.000 contatos", "Campanhas em massa", "IA copiloto + lead scoring", "50 automações", "Filas de atendimento"] },
     { name: "Business", price: 197, featured: false, items: ["Usuários ilimitados", "100.000 contatos", "Tudo do Pro", "Automações ilimitadas", "Suporte prioritário"] },
+  ];
+  // anual = 20% de desconto no preço por mês (cobrado uma vez por ano)
+  const priceOf = (base: number) => (annual ? Math.round(base * 0.8) : base);
+
+  const compareRows: { label: string; values: (string | boolean)[] }[] = [
+    { label: "Usuários", values: ["2", "10", "Ilimitados"] },
+    { label: "Contatos", values: ["1.000", "10.000", "100.000"] },
+    { label: "WhatsApp + Instagram", values: [true, true, true] },
+    { label: "Funil de vendas + tarefas", values: [true, true, true] },
+    { label: "Automações / chatbot", values: ["5", "50", "Ilimitadas"] },
+    { label: "IA: copiloto, resumo e lead scoring", values: [false, true, true] },
+    { label: "Resposta automática com IA (24/7)", values: [false, true, true] },
+    { label: "Campanhas em massa", values: [false, true, true] },
+    { label: "Filas de atendimento", values: [false, true, true] },
+    { label: "Painel do gestor + BI", values: [true, true, true] },
+    { label: "Notificações push", values: [true, true, true] },
+    { label: "Suporte prioritário", values: [false, false, true] },
   ];
 
   return (
@@ -205,14 +223,33 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
           <h2 className="text-3xl font-bold md:text-4xl">Planos que cabem no seu negócio</h2>
           <p className="mx-auto mt-3 max-w-2xl text-slate-300">Por usuário/mês. Cancele quando quiser. 14 dias grátis em qualquer plano.</p>
         </div>
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
+
+        {/* Toggle mensal/anual */}
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <span className={!annual ? "font-medium text-white" : "text-slate-400"}>Mensal</span>
+          <button
+            onClick={() => setAnnual((a) => !a)}
+            className={`relative h-7 w-14 rounded-full transition ${annual ? "bg-emerald-500" : "bg-slate-600"}`}
+            aria-label="Alternar cobrança"
+          >
+            <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${annual ? "left-8" : "left-1"}`} />
+          </button>
+          <span className={annual ? "font-medium text-white" : "text-slate-400"}>
+            Anual <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300">-20%</span>
+          </span>
+        </div>
+
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
           {plans.map((p) => (
             <div key={p.name} className={`rounded-2xl border p-6 ${p.featured ? "border-sky-400 bg-white/10 ring-1 ring-sky-400" : "border-white/10 bg-white/5"}`}>
               <div className="flex items-center justify-between">
                 <div className="text-lg font-semibold">{p.name}</div>
                 {p.featured && <span className="rounded-full bg-sky-500 px-2 py-0.5 text-xs">Mais popular</span>}
               </div>
-              <div className="mt-3 text-3xl font-bold">R$ {p.price}<span className="text-sm font-normal text-slate-400">/usuário/mês</span></div>
+              <div className="mt-3 text-3xl font-bold">R$ {priceOf(p.price)}<span className="text-sm font-normal text-slate-400">/usuário/mês</span></div>
+              <div className="mt-1 h-4 text-xs text-emerald-300">
+                {annual ? `cobrado R$ ${priceOf(p.price) * 12}/ano por usuário` : ""}
+              </div>
               <ul className="mt-4 space-y-2 text-sm text-slate-200">
                 {p.items.map((it) => (
                   <li key={it} className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" /> {it}</li>
@@ -225,6 +262,37 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
           ))}
         </div>
         <p className="mt-4 text-center text-xs text-slate-400">Pagamento seguro via Mercado Pago (cartão ou Pix). Renovação automática, cancele a qualquer momento.</p>
+
+        {/* Tabela comparativa */}
+        <div className="mt-14">
+          <h3 className="mb-4 text-center text-xl font-semibold">Compare os planos em detalhe</h3>
+          <div className="overflow-x-auto rounded-2xl border border-white/10">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead>
+                <tr className="border-b border-white/10 bg-white/5 text-left">
+                  <th className="px-4 py-3 font-medium text-slate-300">Recurso</th>
+                  <th className="px-4 py-3 text-center font-semibold">Starter</th>
+                  <th className="px-4 py-3 text-center font-semibold text-sky-300">Pro</th>
+                  <th className="px-4 py-3 text-center font-semibold">Business</th>
+                </tr>
+              </thead>
+              <tbody>
+                {compareRows.map((row) => (
+                  <tr key={row.label} className="border-b border-white/5 last:border-0">
+                    <td className="px-4 py-3 text-slate-200">{row.label}</td>
+                    {row.values.map((v, i) => (
+                      <td key={i} className="px-4 py-3 text-center">
+                        {typeof v === "boolean"
+                          ? (v ? <Check className="mx-auto h-4 w-4 text-emerald-400" /> : <span className="text-slate-600">—</span>)
+                          : <span className="text-slate-200">{v}</span>}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       {/* FAQ */}
