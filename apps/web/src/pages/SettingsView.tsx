@@ -57,8 +57,25 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
   }, [token, isManager]);
 
   async function choosePlan(planKey: string, planName: string, price: number) {
-    if (!confirm(`Ativar o plano ${planName} (R$ ${price}/usuário/mês)?\n\nA cobrança automática (cartão/Pix) será ativada em breve — por enquanto o plano é liberado direto.`)) return;
     setPlanMsg("");
+    // 1) tenta o checkout recorrente do Mercado Pago
+    try {
+      const r = await apiPost("/billing/checkout", { plan: planKey }, token);
+      if (r.checkoutUrl) {
+        setPlanMsg("Redirecionando para o pagamento seguro do Mercado Pago…");
+        window.location.href = r.checkoutUrl;
+        return;
+      }
+    } catch (err: any) {
+      // checkout ainda não configurado → cai no modo manual abaixo
+      if (!String(err.message).includes("checkout_not_configured")) {
+        setPlanMsg(`Erro: ${err.message}`);
+        return;
+      }
+    }
+
+    // 2) fallback: ativação manual (enquanto o Mercado Pago não está configurado)
+    if (!confirm(`Ativar o plano ${planName} (R$ ${price}/usuário/mês)?\n\nO pagamento automático ainda não está ligado — o plano será liberado manualmente.`)) return;
     try {
       await apiPut("/billing/plan", { plan: planKey }, token);
       const b = await apiGet("/billing", token);
@@ -209,7 +226,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
             </button>
           )}
           <div className="mt-4 rounded-2xl border p-3 text-xs text-slate-500">
-            💳 Cobrança automática por cartão e Pix (Mercado Pago) será ativada em breve. Até lá, a troca de plano é liberada manualmente.
+            💳 Pagamento recorrente seguro via <strong>Mercado Pago</strong> (cartão de crédito ou Pix). A assinatura renova automaticamente todo mês e pode ser cancelada a qualquer momento.
           </div>
         </div>
       </Card>

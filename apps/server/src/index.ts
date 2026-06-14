@@ -16,6 +16,7 @@ import { devRouter } from "./routes/dev";
 import { settingsRouter } from "./routes/settings";
 import { billingRouter } from "./routes/billing";
 import { broadcastRouter } from "./routes/broadcast";
+import { mpWebhookRouter } from "./routes/mpwebhook";
 
 dotenv.config();
 
@@ -47,9 +48,11 @@ app.use(apiLimiter);
 
 app.use(healthRouter);
 app.use(authRouter);
+// Webhooks públicos (sem JWT) — devem vir ANTES dos routers que aplicam requireAuth
+app.use(webhooksRouter);
+app.use(mpWebhookRouter);
 app.use(crudRouter);
 app.use(analyticsRouter);
-app.use(webhooksRouter);
 app.use(channelsRouter);
 app.use(aiRouter);
 app.use(devRouter);

@@ -45,10 +45,59 @@ billingRouter.get("/billing", async (req: AuthedRequest, res) => {
 
 const PlanBody = z.object({ plan: z.enum(["starter", "pro", "business"]) });
 
+const PUBLIC_WEB = process.env.PUBLIC_WEB_URL || "https://solutions-web.onrender.com";
+const PUBLIC_API = process.env.PUBLIC_API_URL || "https://solutions-api.onrender.com";
+
 /**
- * Troca de plano manual (CEO/Sócio). Quando a cobrança automática (Stripe /
- * Mercado Pago) for plugada, este endpoint passa a ser chamado pelo webhook
- * de pagamento confirmado.
+ * Cria uma assinatura recorrente no Mercado Pago para o plano escolhido e
+ * devolve o link de checkout (init_point). O valor é o preço do plano
+ * multiplicado pelo número de usuários da organização.
+ * Requer a env var MERCADOPAGO_ACCESS_TOKEN (token de produção do dono da plataforma).
+ */
+billingRouter.post("/billing/checkout", requireRole("owner", "partner"), async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const parsed = PlanBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+
+  const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  if (!token) return res.status(503).json({ error: "checkout_not_configured", note: "Configure MERCADOPAGO_ACCESS_TOKEN no servidor." });
+
+  const plan = PLANS[parsed.data.plan];
+  const user = await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { email: true } });
+  const users = await prisma.membership.count({ where: { orgId } });
+  const amount = plan.price * Math.max(1, users);
+
+  try {
+    const r = await fetch("https://api.mercadopago.com/preapproval", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        reason: `Solutions CRM — Plano ${plan.name} (${users} usuário(s))`,
+        external_reference: `${orgId}:${parsed.data.plan}`,
+        payer_email: user?.email,
+        back_url: `${PUBLIC_WEB}/?assinatura=ok`,
+        notification_url: `${PUBLIC_API}/webhooks/mercadopago`,
+        auto_recurring: {
+          frequency: 1,
+          frequency_type: "months",
+          transaction_amount: amount,
+          currency_id: "BRL",
+        },
+        status: "pending",
+      }),
+    });
+    const data: any = await r.json();
+    if (!r.ok) return res.status(502).json({ error: "mp_error", detail: data?.message ?? data });
+
+    res.json({ ok: true, checkoutUrl: data.init_point ?? data.sandbox_init_point, amount });
+  } catch (err: any) {
+    res.status(502).json({ error: "mp_request_failed", detail: String(err?.message ?? err) });
+  }
+});
+
+/**
+ * Troca de plano manual (CEO/Sócio) — usado como fallback e pelo webhook
+ * de pagamento confirmado do Mercado Pago.
  */
 billingRouter.put("/billing/plan", requireRole("owner", "partner"), async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
