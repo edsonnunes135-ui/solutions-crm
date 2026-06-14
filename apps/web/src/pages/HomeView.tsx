@@ -1,5 +1,5 @@
-import React from "react";
-import { TrendingUp, Flame, ListTodo, Users, KanbanSquare } from "lucide-react";
+import React, { useState } from "react";
+import { TrendingUp, Flame, ListTodo, Users, KanbanSquare, Rocket, Check, X } from "lucide-react";
 
 function Card({ children, className = "" }: any) {
   return <div className={`rounded-2xl border bg-white ${className}`}>{children}</div>;
@@ -33,6 +33,16 @@ export default function HomeView({ user, kpis, contacts, deals, tasks, money, on
 
   const openTasks = tasks.filter((t) => t.status === "open").slice(0, 6);
 
+  // Onboarding guiado (1º acesso) — dispensável
+  const [hideOnboarding, setHideOnboarding] = useState(() => localStorage.getItem("solutions_onboarding_done") === "1");
+  const steps = [
+    { done: contacts.length > 0, label: "Adicione seu primeiro contato", go: "contacts" },
+    { done: contacts.some((c) => c.conversation), label: "Conecte um canal (WhatsApp/Instagram) em Configurações", go: "settings" },
+    { done: deals.length > 0, label: "Crie um negócio no funil", go: "pipeline" },
+  ];
+  const doneCount = steps.filter((s) => s.done).length;
+  const showOnboarding = !hideOnboarding && doneCount < steps.length;
+
   const kpiCards = [
     { label: "Leads", value: kpis?.leads ?? contacts.length, icon: <Users className="h-5 w-5 text-blue-500" />, go: "contacts" },
     { label: "Negócios abertos", value: kpis?.openDeals ?? deals.filter((d) => d.status === "open").length, icon: <KanbanSquare className="h-5 w-5 text-violet-500" />, go: "pipeline" },
@@ -46,6 +56,29 @@ export default function HomeView({ user, kpis, contacts, deals, tasks, money, on
         <div className="text-xl font-semibold">Bom trabalho, {user?.name?.split(" ")[0] ?? "vendedor"}! 👋</div>
         <div className="text-sm text-slate-500">Aqui está o resumo do seu dia.</div>
       </div>
+
+      {showOnboarding && (
+        <div className="rounded-2xl border border-sky-300 bg-sky-50 p-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2 font-semibold text-sky-900">
+              <Rocket className="h-5 w-5" /> Primeiros passos ({doneCount}/{steps.length})
+            </div>
+            <button onClick={() => { localStorage.setItem("solutions_onboarding_done", "1"); setHideOnboarding(true); }} className="rounded-lg p-1 text-sky-700 hover:bg-sky-100" title="Dispensar">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="mt-3 space-y-2">
+            {steps.map((s) => (
+              <button key={s.label} onClick={() => onGo(s.go)} disabled={s.done} className={`flex w-full items-center gap-2 rounded-xl border bg-white p-2 text-left text-sm ${s.done ? "opacity-60" : "hover:bg-slate-50"}`}>
+                <span className={`flex h-5 w-5 items-center justify-center rounded-full ${s.done ? "bg-green-500 text-white" : "border border-slate-300"}`}>
+                  {s.done && <Check className="h-3 w-3" />}
+                </span>
+                <span className={s.done ? "line-through text-slate-500" : ""}>{s.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-3 md:grid-cols-4">
         {kpiCards.map((k) => (

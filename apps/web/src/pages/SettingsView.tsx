@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Phone, Instagram, UserPlus, Trash2, CheckCircle2, CreditCard, Sparkles, Bell } from "lucide-react";
+import { Phone, Instagram, UserPlus, Trash2, CheckCircle2, CreditCard, Sparkles, Bell, Palette, Building2 } from "lucide-react";
 import { apiGet, apiPost, apiPut, apiDelete } from "../lib/api";
-import { getUser } from "../lib/auth";
+import { getUser, saveAuth } from "../lib/auth";
 import { enablePush, pushSupported } from "../lib/push";
 
 function Card({ children, className = "" }: any) {
@@ -40,6 +40,17 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
   const [aiAutoReply, setAiAutoReply] = useState(false);
   const [pushMsg, setPushMsg] = useState("");
 
+  // Marca (white-label)
+  const [brandName, setBrandName] = useState("");
+  const [brandColor, setBrandColor] = useState("#38bdf8");
+  const [brandLogoUrl, setBrandLogoUrl] = useState("");
+  const [brandMsg, setBrandMsg] = useState("");
+
+  // Empresas (revenda)
+  const [orgs, setOrgs] = useState<any[]>([]);
+  const [newOrgName, setNewOrgName] = useState("");
+  const [orgMsg, setOrgMsg] = useState("");
+
   // Plano
   const [billing, setBilling] = useState<any>(null);
   const [planMsg, setPlanMsg] = useState("");
@@ -57,7 +68,11 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
       setIgPageId(s.instagramPageId ?? "");
       setHasIgToken(s.hasInstagramToken ?? false);
       setAiAutoReply(s.aiAutoReply ?? false);
+      if (s.brandName) setBrandName(s.brandName);
+      if (s.brandColor) setBrandColor(s.brandColor);
+      if (s.brandLogoUrl) setBrandLogoUrl(s.brandLogoUrl);
     }).catch(() => {});
+    apiGet("/orgs", token).then(setOrgs).catch(() => {});
     apiGet("/team", token).then(setTeam).catch(() => {});
     apiGet("/billing", token).then(setBilling).catch(() => {});
   }, [token, isManager]);
@@ -126,6 +141,35 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
     } finally {
       setIgLoading(false);
     }
+  }
+
+  async function saveBrand(e: React.FormEvent) {
+    e.preventDefault();
+    setBrandMsg("");
+    try {
+      await apiPut("/settings", { brandName, brandColor, brandLogoUrl }, token);
+      setBrandMsg("Marca salva! Recarregue o app para ver no cabeçalho. ✓");
+    } catch (err: any) { setBrandMsg(`Erro: ${err.message}`); }
+  }
+
+  async function createOrg(e: React.FormEvent) {
+    e.preventDefault();
+    setOrgMsg("");
+    try {
+      await apiPost("/orgs", { name: newOrgName }, token);
+      setNewOrgName("");
+      const list = await apiGet("/orgs", token);
+      setOrgs(list);
+      setOrgMsg("Empresa criada! Use 'Entrar' para acessá-la.");
+    } catch (err: any) { setOrgMsg(`Erro: ${err.message}`); }
+  }
+
+  async function switchOrg(orgId: string) {
+    try {
+      const d = await apiPost("/orgs/switch", { orgId }, token);
+      saveAuth(d.token, d.user, d.orgId, d.role);
+      location.reload();
+    } catch (err: any) { alert(err.message); }
   }
 
   async function toggleAiAutoReply() {
@@ -293,6 +337,74 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           {pushMsg && <div className="text-sm text-slate-600">{pushMsg}</div>}
         </div>
       </Card>
+
+      {/* Marca (white-label) */}
+      <Card>
+        <div className="p-4 pb-3">
+          <div className="flex items-center gap-2 text-base font-semibold">
+            <Palette className="h-4 w-4 text-pink-500" /> Marca personalizada (white-label)
+          </div>
+          <div className="text-sm text-slate-500">Use sua própria marca — ideal para revender o sistema como se fosse seu.</div>
+        </div>
+        <div className="p-4 pt-0">
+          <form onSubmit={saveBrand} className="grid gap-3 md:grid-cols-2 max-w-2xl">
+            <div>
+              <label className="mb-1 block text-sm font-medium">Nome exibido</label>
+              <Input value={brandName} onChange={(e: any) => setBrandName(e.target.value)} placeholder="Ex.: Minha Empresa CRM" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Cor de destaque</label>
+              <div className="flex items-center gap-2">
+                <input type="color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} className="h-10 w-12 rounded-lg border" />
+                <Input value={brandColor} onChange={(e: any) => setBrandColor(e.target.value)} placeholder="#38bdf8" />
+              </div>
+            </div>
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-sm font-medium">URL do logo (opcional)</label>
+              <Input value={brandLogoUrl} onChange={(e: any) => setBrandLogoUrl(e.target.value)} placeholder="https://.../meu-logo.png" />
+            </div>
+            <div className="md:col-span-2 flex items-center gap-3">
+              <button type="submit" className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">Salvar marca</button>
+              {brandMsg && <span className={`text-sm ${brandMsg.startsWith("Erro") ? "text-red-600" : "text-green-600"}`}>{brandMsg}</span>}
+            </div>
+          </form>
+        </div>
+      </Card>
+
+      {/* Empresas (revenda) */}
+      {isOwner && (
+        <Card>
+          <div className="p-4 pb-3">
+            <div className="flex items-center gap-2 text-base font-semibold">
+              <Building2 className="h-4 w-4 text-blue-500" /> Empresas (revenda / agência)
+            </div>
+            <div className="text-sm text-slate-500">Gerencie várias empresas com o mesmo acesso. Crie uma conta para cada cliente e alterne entre elas.</div>
+          </div>
+          <div className="p-4 pt-0 space-y-3">
+            <div className="space-y-2">
+              {orgs.map((o) => (
+                <div key={o.orgId} className="flex items-center justify-between rounded-2xl border p-3">
+                  <div>
+                    <div className="font-medium">{o.name} {o.current && <span className="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">atual</span>}</div>
+                    <div className="text-xs text-slate-500">Plano: {o.plan} • papel: {roleLabel[o.role] ?? o.role}</div>
+                  </div>
+                  {!o.current && (
+                    <button onClick={() => switchOrg(o.orgId)} className="rounded-2xl border px-3 py-1.5 text-sm hover:bg-slate-50">Entrar</button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <form onSubmit={createOrg} className="flex flex-wrap items-end gap-2 rounded-2xl border p-3">
+              <div className="flex-1 min-w-[200px]">
+                <label className="mb-1 block text-sm font-medium">Nova empresa (cliente)</label>
+                <Input value={newOrgName} onChange={(e: any) => setNewOrgName(e.target.value)} placeholder="Nome da empresa do cliente" />
+              </div>
+              <button type="submit" className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">Criar empresa</button>
+            </form>
+            {orgMsg && <div className={`text-sm ${orgMsg.startsWith("Erro") ? "text-red-600" : "text-green-600"}`}>{orgMsg}</div>}
+          </div>
+        </Card>
+      )}
 
       {/* WhatsApp */}
       <Card>

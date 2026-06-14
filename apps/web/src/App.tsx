@@ -200,6 +200,10 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
     localStorage.setItem("solutions_dark", dark ? "1" : "0");
   }, [dark]);
 
+  // Marca white-label (por organização)
+  const [brand, setBrand] = useState<{ brandName?: string; brandColor?: string; brandLogoUrl?: string }>({});
+  useEffect(() => { apiGet("/branding", token).then(setBrand).catch(() => {}); }, [token]);
+
   // Command palette (Ctrl/Cmd + K)
   const [showPalette, setShowPalette] = useState(false);
   const [paletteQ, setPaletteQ] = useState("");
@@ -587,6 +591,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
       className="min-h-screen bg-slate-950 bg-cover bg-center bg-fixed"
       style={{ backgroundImage: "linear-gradient(rgba(2,6,23,0.55), rgba(2,6,23,0.75)), url(/logo.jpeg)" }}
     >
+      {brand.brandColor && <div style={{ height: 4, background: brand.brandColor }} />}
       {showPalette && (() => {
         const cmds: { label: string; view: View; manager?: boolean }[] = [
           { label: "Início", view: "home" },
@@ -733,9 +738,9 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
         <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <img src="/logo.jpeg" alt="Solutions" className="h-10 w-10 rounded-2xl object-cover ring-2 ring-white/20" />
-              <h1 className="text-2xl font-semibold tracking-tight text-white">Solutions</h1>
-              <span className="rounded-full border border-white/30 px-2 py-0.5 text-xs text-white/80">CRM Conversacional</span>
+              <img src={brand.brandLogoUrl || "/logo.jpeg"} alt={brand.brandName || "Solutions"} className="h-10 w-10 rounded-2xl object-cover ring-2 ring-white/20" />
+              <h1 className="text-2xl font-semibold tracking-tight text-white">{brand.brandName || "Solutions"}</h1>
+              {!brand.brandName && <span className="rounded-full border border-white/30 px-2 py-0.5 text-xs text-white/80">CRM Conversacional</span>}
             </div>
             <p className="text-sm text-slate-300">Olá, {user?.name ?? "usuário"} — centralize WhatsApp + Instagram, funis, tarefas, automações, BI e IA.</p>
           </div>

@@ -271,6 +271,9 @@ model OrgSetting {
   instagramAccessToken  String?
   instagramPageId       String?
   aiAutoReply           Boolean  @default(false) // chatbot de IA responde sozinho
+  brandName             String? // white-label: nome exibido no app
+  brandColor            String? // white-label: cor de destaque (hex)
+  brandLogoUrl          String? // white-label: URL do logo
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

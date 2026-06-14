@@ -19,6 +19,9 @@ settingsRouter.get("/settings", requireRole("owner", "partner", "admin"), async 
     hasWhatsappToken: !!s?.whatsappAccessToken,
     hasInstagramToken: !!s?.instagramAccessToken,
     aiAutoReply: s?.aiAutoReply ?? false,
+    brandName: s?.brandName ?? "",
+    brandColor: s?.brandColor ?? "",
+    brandLogoUrl: s?.brandLogoUrl ?? "",
   });
 });
 
@@ -28,6 +31,9 @@ const SettingsBody = z.object({
   instagramAccessToken: z.string().optional(),
   instagramPageId: z.string().optional(),
   aiAutoReply: z.boolean().optional(),
+  brandName: z.string().max(40).optional(),
+  brandColor: z.string().max(20).optional(),
+  brandLogoUrl: z.string().max(500).optional(),
 });
 
 settingsRouter.put("/settings", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
@@ -41,6 +47,9 @@ settingsRouter.put("/settings", requireRole("owner", "partner", "admin"), async 
   if (parsed.data.instagramAccessToken) data.instagramAccessToken = parsed.data.instagramAccessToken;
   if (parsed.data.instagramPageId !== undefined) data.instagramPageId = parsed.data.instagramPageId;
   if (parsed.data.aiAutoReply !== undefined) data.aiAutoReply = parsed.data.aiAutoReply;
+  if (parsed.data.brandName !== undefined) data.brandName = parsed.data.brandName;
+  if (parsed.data.brandColor !== undefined) data.brandColor = parsed.data.brandColor;
+  if (parsed.data.brandLogoUrl !== undefined) data.brandLogoUrl = parsed.data.brandLogoUrl;
 
   const s = await prisma.orgSetting.upsert({
     where: { orgId },
@@ -73,6 +82,20 @@ settingsRouter.put("/settings", requireRole("owner", "partner", "admin"), async 
     hasWhatsappToken: !!s.whatsappAccessToken,
     hasInstagramToken: !!s.instagramAccessToken,
     aiAutoReply: s.aiAutoReply,
+    brandName: s.brandName ?? "",
+    brandColor: s.brandColor ?? "",
+    brandLogoUrl: s.brandLogoUrl ?? "",
+  });
+});
+
+// Marca da organização (qualquer membro pode ler — usado para aplicar white-label no app)
+settingsRouter.get("/branding", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const s = await prisma.orgSetting.findUnique({ where: { orgId } });
+  res.json({
+    brandName: s?.brandName ?? "",
+    brandColor: s?.brandColor ?? "",
+    brandLogoUrl: s?.brandLogoUrl ?? "",
   });
 });
 

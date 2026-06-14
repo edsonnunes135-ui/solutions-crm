@@ -18,6 +18,7 @@ import { billingRouter } from "./routes/billing";
 import { broadcastRouter } from "./routes/broadcast";
 import { mpWebhookRouter } from "./routes/mpwebhook";
 import { pushRouter } from "./routes/push";
+import { orgsRouter } from "./routes/orgs";
 
 dotenv.config();
 
@@ -61,6 +62,7 @@ app.use(settingsRouter);
 app.use(billingRouter);
 app.use(broadcastRouter);
 app.use(pushRouter);
+app.use(orgsRouter);
 
 const port = Number(process.env.PORT || 4000);
 app.listen(port, () => {
