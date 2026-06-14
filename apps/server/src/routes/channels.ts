@@ -1,17 +1,41 @@
 import { Router } from "express";
 import { z } from "zod";
-import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { requireAuth, requireRole, AuthedRequest } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { sendChannelMessage } from "../lib/send";
 
 /**
- * Endpoints de envio (stub).
- * No produto real:
- * - WhatsApp: POST para endpoint oficial com access token
- * - Instagram: endpoint oficial de mensagens
+ * Endpoints de envio e configuração de canais.
  */
 export const channelsRouter = Router();
 channelsRouter.use(requireAuth);
+
+/**
+ * Inscreve a conta WhatsApp Business (WABA) no app, para que as mensagens
+ * recebidas cheguem ao nosso webhook. Necessário ao conectar um número novo.
+ * Usa o token salvo da organização.
+ */
+const SubscribeBody = z.object({ wabaId: z.string().min(5) });
+channelsRouter.post("/channels/whatsapp/subscribe", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const parsed = SubscribeBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+
+  const setting = await prisma.orgSetting.findUnique({ where: { orgId } });
+  const token = setting?.whatsappAccessToken;
+  if (!token) return res.status(400).json({ error: "no_token", note: "Salve o token do WhatsApp primeiro." });
+
+  try {
+    const r = await fetch(`https://graph.facebook.com/v21.0/${parsed.data.wabaId}/subscribed_apps`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data: any = await r.json();
+    return res.json({ ok: r.ok, status: r.status, data });
+  } catch (err: any) {
+    return res.status(502).json({ ok: false, error: String(err?.message ?? err) });
+  }
+});
 
 /**
  * Contas conectadas (multi-tenant mapping)
