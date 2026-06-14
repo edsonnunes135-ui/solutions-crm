@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { enqueueEvent } from "../lib/queue";
+import { pushToOrg } from "../lib/push";
+import { aiEnabled, suggestReply } from "../lib/ai";
+import { sendChannelMessage } from "../lib/send";
 import {
   normalizeMetaWebhook,
   resolveOrgIdForMetaWebhook,
@@ -101,6 +104,32 @@ webhooksRouter.post("/webhooks/meta", async (req, res) => {
 
     await enqueueEvent(ev.id);
     ingested++;
+
+    // Notificação push para a equipe
+    pushToOrg(orgId, {
+      title: `Nova mensagem de ${contact.name}`,
+      body: m.text?.slice(0, 120) ?? "Você recebeu uma mensagem",
+      url: "/",
+    }).catch(() => {});
+
+    // Auto-resposta com IA (se ativada e configurada)
+    try {
+      const setting = await prisma.orgSetting.findUnique({ where: { orgId } });
+      if (setting?.aiAutoReply && aiEnabled()) {
+        const history = await prisma.message.findMany({
+          where: { orgId, conversationId: conv.id },
+          orderBy: { sentAt: "asc" },
+          take: 30,
+          select: { direction: true, text: true },
+        });
+        const r = await suggestReply({ messages: history, contactName: contact.name });
+        if (r.text) {
+          await sendChannelMessage({ orgId, conversationId: conv.id, channel: m.channel, text: r.text });
+        }
+      }
+    } catch {
+      // auto-resposta é best-effort; nunca quebra o webhook
+    }
   }
 
   return res.status(200).json({ ok: true, orgId, channel: normalized.channel, ingested });

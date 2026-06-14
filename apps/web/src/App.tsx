@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MessageSquare, Users, KanbanSquare, Zap, LineChart as LineChartIcon,
   Sparkles, Search, Plus, Send, Clock, CheckCircle2, AlertCircle, Filter,
-  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck,
+  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command,
 } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
@@ -13,8 +13,9 @@ import SettingsView from "./pages/SettingsView";
 import AutomationsView from "./pages/AutomationsView";
 import CampaignsView from "./pages/CampaignsView";
 import CopilotView from "./pages/CopilotView";
+import HomeView from "./pages/HomeView";
 
-type View = "inbox" | "pipeline" | "contacts" | "automations" | "analytics" | "ai" | "manager" | "settings" | "campaigns";
+type View = "home" | "inbox" | "pipeline" | "contacts" | "automations" | "analytics" | "ai" | "manager" | "settings" | "campaigns";
 
 // ── UI primitives ────────────────────────────────────────────────────────────
 
@@ -176,7 +177,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   const user = getUser();
   const isManager = user?.role === "owner" || user?.role === "partner" || user?.role === "admin";
 
-  const [view, setView] = useState<View>("inbox");
+  const [view, setView] = useState<View>("home");
   const [q, setQ] = useState("");
 
   // Modo privacidade: oculta valores financeiros (persiste entre sessões)
@@ -188,6 +189,29 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
     });
   }
   const money = (v: number) => (hideValues ? "R$ ••••••" : currencyBRL(v));
+
+  // Modo escuro (persiste entre sessões)
+  const [dark, setDark] = useState(() => localStorage.getItem("solutions_dark") === "1");
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+    localStorage.setItem("solutions_dark", dark ? "1" : "0");
+  }, [dark]);
+
+  // Command palette (Ctrl/Cmd + K)
+  const [showPalette, setShowPalette] = useState(false);
+  const [paletteQ, setPaletteQ] = useState("");
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setShowPalette((p) => !p);
+        setPaletteQ("");
+      }
+      if (e.key === "Escape") setShowPalette(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const [contacts, setContacts] = useState<any[]>([]);
@@ -560,6 +584,47 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
       className="min-h-screen bg-slate-950 bg-cover bg-center bg-fixed"
       style={{ backgroundImage: "linear-gradient(rgba(2,6,23,0.55), rgba(2,6,23,0.75)), url(/logo.jpeg)" }}
     >
+      {showPalette && (() => {
+        const cmds: { label: string; view: View; manager?: boolean }[] = [
+          { label: "Início", view: "home" },
+          { label: "Inbox / Conversas", view: "inbox" },
+          { label: "Funil de vendas", view: "pipeline" },
+          { label: "Contatos", view: "contacts" },
+          { label: "Automações", view: "automations" },
+          { label: "BI / Analytics", view: "analytics" },
+          { label: "Copiloto de IA", view: "ai" },
+          { label: "Gestão", view: "manager", manager: true },
+          { label: "Campanhas", view: "campaigns", manager: true },
+          { label: "Configurações", view: "settings", manager: true },
+        ];
+        const list = cmds.filter((c) => (!c.manager || isManager) && c.label.toLowerCase().includes(paletteQ.toLowerCase()));
+        return (
+          <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 p-4 pt-24" onClick={() => setShowPalette(false)}>
+            <div className="w-full max-w-lg overflow-hidden rounded-2xl border bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-2 border-b px-4 py-3">
+                <Command className="h-4 w-4 text-slate-400" />
+                <input
+                  autoFocus
+                  value={paletteQ}
+                  onChange={(e) => setPaletteQ(e.target.value)}
+                  placeholder="Buscar tela ou ação…"
+                  className="w-full bg-transparent text-sm outline-none"
+                  onKeyDown={(e) => { if (e.key === "Enter" && list[0]) { setView(list[0].view); setShowPalette(false); } }}
+                />
+              </div>
+              <div className="max-h-80 overflow-auto p-2">
+                {list.length === 0 && <div className="p-3 text-sm text-slate-500">Nada encontrado.</div>}
+                {list.map((c) => (
+                  <button key={c.view + c.label} onClick={() => { setView(c.view); setShowPalette(false); }} className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100">
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {lostDealPending && (
         <Modal title="Motivo da perda" onClose={() => setLostDealPending(null)}>
           <form
@@ -680,6 +745,20 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
               <Plus className="h-4 w-4" /> Novo lead
             </Button>
             <button
+              onClick={() => setShowPalette(true)}
+              className="hidden sm:inline-flex items-center gap-1 rounded-2xl border border-white/30 bg-white/10 px-2 py-2 text-xs text-white hover:bg-white/20"
+              title="Busca rápida (Ctrl+K)"
+            >
+              <Command className="h-3.5 w-3.5" /> Ctrl+K
+            </button>
+            <button
+              onClick={() => setDark((d) => !d)}
+              className="rounded-2xl border border-white/30 bg-white/10 p-2 text-white hover:bg-white/20"
+              title={dark ? "Modo claro" : "Modo escuro"}
+            >
+              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+            <button
               onClick={toggleHideValues}
               className="rounded-2xl border border-white/30 bg-white/10 p-2 text-white hover:bg-white/20"
               title={hideValues ? "Mostrar valores" : "Ocultar valores"}
@@ -713,6 +792,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
               <div className="text-sm text-slate-500">{user?.email}</div>
             </CardHeader>
             <CardContent className="space-y-1">
+              <NavItem icon={<Home className="h-4 w-4" />} active={view === "home"} onClick={() => setView("home")} label="Início" />
               <NavItem icon={<MessageSquare className="h-4 w-4" />} active={view === "inbox"} onClick={() => setView("inbox")} label="Inbox" />
               <NavItem icon={<KanbanSquare className="h-4 w-4" />} active={view === "pipeline"} onClick={() => setView("pipeline")} label="Funil" />
               <NavItem icon={<Users className="h-4 w-4" />} active={view === "contacts"} onClick={() => setView("contacts")} label="Contatos" />
@@ -744,6 +824,20 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
           {/* Main content */}
           <div className="space-y-4">
+            {/* ── HOME ── */}
+            {view === "home" && (
+              <HomeView
+                user={user}
+                kpis={kpis}
+                contacts={contacts}
+                deals={deals}
+                tasks={tasks}
+                money={money}
+                onGo={(v) => setView(v as View)}
+                onSelectContact={(id) => setSelectedContactId(id)}
+              />
+            )}
+
             {/* ── INBOX ── */}
             {view === "inbox" && (
               <div className="grid gap-4 lg:grid-cols-[340px_1fr]">

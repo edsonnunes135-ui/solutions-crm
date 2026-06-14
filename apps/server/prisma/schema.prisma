@@ -49,6 +49,7 @@ model Organization {
   contactIdentities ContactIdentity[]
   channelAccounts   ChannelAccount[]
   setting           OrgSetting?
+  pushSubscriptions PushSubscription[]
 }
 
 model User {
@@ -269,10 +270,25 @@ model OrgSetting {
   whatsappPhoneNumberId String?
   instagramAccessToken  String?
   instagramPageId       String?
+  aiAutoReply           Boolean  @default(false) // chatbot de IA responde sozinho
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
   org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
 }
 
 model Event {

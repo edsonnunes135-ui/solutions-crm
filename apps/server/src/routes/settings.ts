@@ -18,6 +18,7 @@ settingsRouter.get("/settings", requireRole("owner", "partner", "admin"), async 
     // nunca devolve os tokens completos — só indica se estão configurados
     hasWhatsappToken: !!s?.whatsappAccessToken,
     hasInstagramToken: !!s?.instagramAccessToken,
+    aiAutoReply: s?.aiAutoReply ?? false,
   });
 });
 
@@ -26,6 +27,7 @@ const SettingsBody = z.object({
   whatsappPhoneNumberId: z.string().optional(),
   instagramAccessToken: z.string().optional(),
   instagramPageId: z.string().optional(),
+  aiAutoReply: z.boolean().optional(),
 });
 
 settingsRouter.put("/settings", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
@@ -38,6 +40,7 @@ settingsRouter.put("/settings", requireRole("owner", "partner", "admin"), async 
   if (parsed.data.whatsappPhoneNumberId !== undefined) data.whatsappPhoneNumberId = parsed.data.whatsappPhoneNumberId;
   if (parsed.data.instagramAccessToken) data.instagramAccessToken = parsed.data.instagramAccessToken;
   if (parsed.data.instagramPageId !== undefined) data.instagramPageId = parsed.data.instagramPageId;
+  if (parsed.data.aiAutoReply !== undefined) data.aiAutoReply = parsed.data.aiAutoReply;
 
   const s = await prisma.orgSetting.upsert({
     where: { orgId },
@@ -69,6 +72,7 @@ settingsRouter.put("/settings", requireRole("owner", "partner", "admin"), async 
     instagramPageId: s.instagramPageId ?? "",
     hasWhatsappToken: !!s.whatsappAccessToken,
     hasInstagramToken: !!s.instagramAccessToken,
+    aiAutoReply: s.aiAutoReply,
   });
 });
 

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Phone, Instagram, UserPlus, Trash2, CheckCircle2, CreditCard } from "lucide-react";
+import { Phone, Instagram, UserPlus, Trash2, CheckCircle2, CreditCard, Sparkles, Bell } from "lucide-react";
 import { apiGet, apiPost, apiPut, apiDelete } from "../lib/api";
 import { getUser } from "../lib/auth";
+import { enablePush, pushSupported } from "../lib/push";
 
 function Card({ children, className = "" }: any) {
   return <div className={`rounded-2xl border bg-white ${className}`}>{children}</div>;
@@ -35,6 +36,10 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
   const [igSaved, setIgSaved] = useState(false);
   const [igLoading, setIgLoading] = useState(false);
 
+  // IA & notificações
+  const [aiAutoReply, setAiAutoReply] = useState(false);
+  const [pushMsg, setPushMsg] = useState("");
+
   // Plano
   const [billing, setBilling] = useState<any>(null);
   const [planMsg, setPlanMsg] = useState("");
@@ -51,6 +56,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
       setHasToken(s.hasWhatsappToken);
       setIgPageId(s.instagramPageId ?? "");
       setHasIgToken(s.hasInstagramToken ?? false);
+      setAiAutoReply(s.aiAutoReply ?? false);
     }).catch(() => {});
     apiGet("/team", token).then(setTeam).catch(() => {});
     apiGet("/billing", token).then(setBilling).catch(() => {});
@@ -120,6 +126,27 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
     } finally {
       setIgLoading(false);
     }
+  }
+
+  async function toggleAiAutoReply() {
+    const next = !aiAutoReply;
+    setAiAutoReply(next);
+    try {
+      await apiPut("/settings", { aiAutoReply: next }, token);
+    } catch (err: any) {
+      setAiAutoReply(!next);
+      alert(err.message);
+    }
+  }
+
+  async function ativarPush() {
+    setPushMsg("");
+    const r = await enablePush(token);
+    if (r.ok) setPushMsg("Notificações ativadas neste dispositivo! 🔔");
+    else if (r.reason === "server_not_configured") setPushMsg("Push ainda não configurado no servidor (faltam as chaves VAPID).");
+    else if (r.reason === "denied") setPushMsg("Você negou a permissão de notificações no navegador.");
+    else if (r.reason === "unsupported") setPushMsg("Este navegador não suporta notificações push.");
+    else setPushMsg("Não foi possível ativar.");
   }
 
   async function deactivatePlan() {
@@ -228,6 +255,42 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           <div className="mt-4 rounded-2xl border p-3 text-xs text-slate-500">
             💳 Pagamento recorrente seguro via <strong>Mercado Pago</strong> (cartão de crédito ou Pix). A assinatura renova automaticamente todo mês e pode ser cancelada a qualquer momento.
           </div>
+        </div>
+      </Card>
+
+      {/* IA & Notificações */}
+      <Card>
+        <div className="p-4 pb-3">
+          <div className="flex items-center gap-2 text-base font-semibold">
+            <Sparkles className="h-4 w-4 text-violet-500" /> Inteligência e notificações
+          </div>
+          <div className="text-sm text-slate-500">Robô de IA e avisos em tempo real</div>
+        </div>
+        <div className="p-4 pt-0 space-y-4">
+          <div className="flex items-center justify-between rounded-2xl border p-3">
+            <div className="pr-3">
+              <div className="text-sm font-medium">Resposta automática com IA</div>
+              <div className="text-xs text-slate-500">Quando um cliente manda mensagem, a IA responde sozinha (24/7) usando o histórico. Requer ANTHROPIC_API_KEY e um canal conectado.</div>
+            </div>
+            <button
+              onClick={toggleAiAutoReply}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition ${aiAutoReply ? "bg-green-500" : "bg-slate-300"}`}
+              title={aiAutoReply ? "Desligar" : "Ligar"}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${aiAutoReply ? "left-[22px]" : "left-0.5"}`} />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between rounded-2xl border p-3">
+            <div className="pr-3">
+              <div className="flex items-center gap-1 text-sm font-medium"><Bell className="h-3.5 w-3.5" /> Notificações push</div>
+              <div className="text-xs text-slate-500">Receba um aviso no aparelho quando chegar lead ou mensagem novos — mesmo com o app fechado.</div>
+            </div>
+            <button onClick={ativarPush} disabled={!pushSupported()} className="shrink-0 rounded-2xl bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50">
+              Ativar neste aparelho
+            </button>
+          </div>
+          {pushMsg && <div className="text-sm text-slate-600">{pushMsg}</div>}
         </div>
       </Card>
 
