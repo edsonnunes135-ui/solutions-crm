@@ -12,6 +12,7 @@ import ManagerView from "./pages/ManagerView";
 import SettingsView from "./pages/SettingsView";
 import AutomationsView from "./pages/AutomationsView";
 import CampaignsView from "./pages/CampaignsView";
+import CopilotView from "./pages/CopilotView";
 
 type View = "inbox" | "pipeline" | "contacts" | "automations" | "analytics" | "ai" | "manager" | "settings" | "campaigns";
 
@@ -308,6 +309,50 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   const [messageDraft, setMessageDraft] = useState("");
   const [thread, setThread] = useState<{ conversationId: string | null; channel: string; messages: any[] }>({ conversationId: null, channel: "whatsapp", messages: [] });
   const [sendNote, setSendNote] = useState("");
+
+  // ── IA no Inbox ──
+  const [aiBusy, setAiBusy] = useState<"" | "reply" | "summary" | "score">("");
+  const [aiSummary, setAiSummary] = useState("");
+
+  async function aiSuggestReply() {
+    if (!selectedContact) return;
+    setAiBusy("reply"); setSendNote("");
+    try {
+      const r = await apiPost("/ai/suggest-reply", { contactId: selectedContact.id }, token);
+      if (r.note === "ai_not_configured") setSendNote("IA não configurada — adicione ANTHROPIC_API_KEY no servidor (Configurações do Render).");
+      else if (r.text) setMessageDraft(r.text);
+    } catch (err: any) { setSendNote(`Falha na IA: ${err.message}`); }
+    finally { setAiBusy(""); }
+  }
+
+  async function aiSummarize() {
+    if (!selectedContact) return;
+    setAiBusy("summary"); setAiSummary("");
+    try {
+      const r = await apiPost("/ai/summarize", { contactId: selectedContact.id }, token);
+      setAiSummary(r.nextBestAction ? `${r.summary}\n\n👉 Próxima ação: ${r.nextBestAction}` : r.summary);
+    } catch (err: any) { setAiSummary(`Falha na IA: ${err.message}`); }
+    finally { setAiBusy(""); }
+  }
+
+  async function aiScore() {
+    if (!selectedContact) return;
+    setAiBusy("score");
+    try {
+      const r = await apiPost("/ai/score-lead", { contactId: selectedContact.id }, token);
+      if (r.note === "ai_not_configured") setAiSummary("IA não configurada — adicione ANTHROPIC_API_KEY no servidor.");
+      else await reload();
+    } catch (err: any) { setAiSummary(`Falha na IA: ${err.message}`); }
+    finally { setAiBusy(""); }
+  }
+
+  function ScoreBadge({ c }: { c: any }) {
+    if (c?.aiScore == null) return null;
+    const color = c.aiTemperature === "quente" ? "border-red-300 bg-red-50 text-red-700"
+      : c.aiTemperature === "morno" ? "border-amber-300 bg-amber-50 text-amber-700"
+      : "border-sky-300 bg-sky-50 text-sky-700";
+    return <span className={`rounded-full border px-2 py-0.5 text-xs ${color}`} title={c.aiScoreReason ?? ""}>IA {c.aiScore}</span>;
+  }
 
   // Carrega o histórico de mensagens ao trocar de contato
   useEffect(() => {
@@ -769,6 +814,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                                     <span className="truncate font-medium">{c.name}</span>
                                     {(c.conversation?.channel || c.channel) && <ChannelBadge c={c.conversation?.channel ?? c.channel} />}
                                     <QueueChip conv={c.conversation} />
+                                    <ScoreBadge c={c} />
                                   </div>
                                   <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
                                     <Building2 className="h-3.5 w-3.5" />
@@ -866,6 +912,26 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                         )}
                       </div>
                     </div>
+
+                    {selectedContact && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button variant="outline" className="gap-1 px-2 py-1 text-xs" onClick={aiSuggestReply} disabled={aiBusy !== ""}>
+                          <Sparkles className="h-3.5 w-3.5 text-violet-500" /> {aiBusy === "reply" ? "Gerando…" : "Sugerir resposta"}
+                        </Button>
+                        <Button variant="outline" className="gap-1 px-2 py-1 text-xs" onClick={aiSummarize} disabled={aiBusy !== ""}>
+                          <Sparkles className="h-3.5 w-3.5 text-violet-500" /> {aiBusy === "summary" ? "Resumindo…" : "Resumir"}
+                        </Button>
+                        <Button variant="outline" className="gap-1 px-2 py-1 text-xs" onClick={aiScore} disabled={aiBusy !== ""}>
+                          <Sparkles className="h-3.5 w-3.5 text-violet-500" /> {aiBusy === "score" ? "Analisando…" : "Analisar lead"}
+                        </Button>
+                        <ScoreBadge c={selectedContact} />
+                      </div>
+                    )}
+                    {aiSummary && (
+                      <div className="rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-900 whitespace-pre-wrap">
+                        {aiSummary}
+                      </div>
+                    )}
 
                     <div className="flex gap-2">
                       <Textarea value={messageDraft} onChange={(e: any) => setMessageDraft(e.target.value)} placeholder="Escreva uma resposta…" className="min-h-[44px]" />
@@ -1116,37 +1182,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
             {view === "settings" && <SettingsView token={token} isManager={isManager} />}
 
             {/* ── AI ── */}
-            {view === "ai" && (
-              <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-                <Card>
-                  <CardHeader>
-                    <div className="text-base font-semibold">Copiloto de IA</div>
-                    <div className="text-sm text-slate-500">
-                      {selectedContact ? `Contexto: ${selectedContact.name}` : "Selecione um contato no Inbox para contexto"}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Textarea value={aiPrompt} onChange={(e: any) => setAiPrompt(e.target.value)} className="min-h-[90px]" placeholder="Instrução para a IA…" />
-                    <Button onClick={runAI} disabled={aiLoading} className="gap-2">
-                      <Sparkles className="h-4 w-4" /> {aiLoading ? "Gerando…" : "Rodar IA"}
-                    </Button>
-                    <div className="rounded-2xl border p-4 whitespace-pre-wrap text-sm min-h-[120px]">
-                      {aiResult || "Resultado aparecerá aqui…"}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <div className="text-base font-semibold">Playbooks</div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Playbook title="Qualificação rápida" items={["Dor + urgência", "Orçamento", "Decisor", "Próximo passo"]} />
-                    <Playbook title="Proposta" items={["Resumo do combinado", "Prazo", "Condições", "CTA"]} />
-                    <Playbook title="Reativação" items={["Motivo do sumiço", "Oferta específica", "Prazo", "Pergunta fechada"]} />
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+            {view === "ai" && <CopilotView token={token} />}
           </div>
         </div>
       </div>

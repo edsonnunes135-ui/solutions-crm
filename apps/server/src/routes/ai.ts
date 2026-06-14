@@ -1,67 +1,105 @@
 import { Router } from "express";
 import { z } from "zod";
 import { requireAuth, AuthedRequest } from "../middleware/auth";
-import Anthropic from "@anthropic-ai/sdk";
+import { prisma } from "../lib/prisma";
+import { aiEnabled, suggestReply, summarizeConversation, copilotAnswer, scoreLead } from "../lib/ai";
 
+/**
+ * IA do Solutions — powered by Claude (Anthropic).
+ * Funciona em modo stub sem ANTHROPIC_API_KEY; fica inteligente ao configurá-la.
+ */
 export const aiRouter = Router();
 aiRouter.use(requireAuth);
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-const SummarizeSchema = z.object({
-  context: z.string().min(1),
-  goal: z.string().optional(),
+aiRouter.get("/ai/status", (_req, res) => {
+  res.json({ enabled: aiEnabled() });
 });
 
-aiRouter.post("/ai/summarize", async (req: AuthedRequest, res) => {
-  const parsed = SummarizeSchema.safeParse(req.body);
+async function loadContactMessages(orgId: string, contactId: string) {
+  const conversations = await prisma.conversation.findMany({ where: { orgId, contactId }, select: { id: true } });
+  return prisma.message.findMany({
+    where: { orgId, conversationId: { in: conversations.map((c) => c.id) } },
+    orderBy: { sentAt: "asc" },
+    take: 50,
+    select: { direction: true, text: true },
+  });
+}
+
+// Sugerir resposta para um contato
+const ContactBody = z.object({ contactId: z.string().min(1) });
+aiRouter.post("/ai/suggest-reply", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const parsed = ContactBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
-
-  const { context, goal } = parsed.data;
-
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.json({
-      summary: "Resumo (stub): Lead pediu info, está qualificado e precisa de resposta com prazo + condições + CTA.",
-      nextBestAction: "Responder em até 5 min com proposta objetiva e agendar call.",
-      suggestedReply: "Perfeito! Consigo entregar em X dias. Posso te mandar a proposta agora e alinhamos em 10 min por ligação?",
-      note: "Configure ANTHROPIC_API_KEY no .env para respostas reais.",
-    });
-  }
-
-  const systemPrompt = `Você é um copiloto de vendas especializado em CRM conversacional.
-Analise o contexto fornecido e responda SEMPRE em JSON com exatamente estas chaves:
-{
-  "summary": "resumo objetivo da situação do lead em 1-2 frases",
-  "nextBestAction": "próxima ação recomendada em 1 frase",
-  "suggestedReply": "mensagem sugerida para enviar ao lead (tom conversacional, direto)"
-}`;
-
-  const userMessage = `Contexto do CRM:\n${context}\n\nObjetivo do vendedor: ${goal ?? "Resumir situação e sugerir próxima ação"}`;
-
+  const contact = await prisma.contact.findFirst({ where: { id: parsed.data.contactId, orgId } });
+  if (!contact) return res.status(404).json({ error: "not_found" });
+  const messages = await loadContactMessages(orgId, contact.id);
   try {
-    const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 512,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
-    });
-
-    const text = message.content[0].type === "text" ? message.content[0].text : "";
-
-    let parsed: any = {};
-    try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-    } catch {
-      parsed = { summary: text, nextBestAction: "", suggestedReply: "" };
-    }
-
-    res.json({
-      summary: parsed.summary ?? "",
-      nextBestAction: parsed.nextBestAction ?? "",
-      suggestedReply: parsed.suggestedReply ?? "",
-    });
+    res.json(await suggestReply({ messages, contactName: contact.name, company: contact.company ?? undefined }));
   } catch (err: any) {
-    res.status(500).json({ error: "ai_error", message: err.message });
+    res.status(502).json({ error: "ai_error", detail: String(err?.message ?? err) });
+  }
+});
+
+// Resumir conversa
+aiRouter.post("/ai/summarize", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const parsed = ContactBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+  const contact = await prisma.contact.findFirst({ where: { id: parsed.data.contactId, orgId } });
+  if (!contact) return res.status(404).json({ error: "not_found" });
+  const messages = await loadContactMessages(orgId, contact.id);
+  try {
+    res.json(await summarizeConversation({ messages, contactName: contact.name }));
+  } catch (err: any) {
+    res.status(502).json({ error: "ai_error", detail: String(err?.message ?? err) });
+  }
+});
+
+// Copiloto (pergunta livre, com contexto opcional do contato)
+const AskBody = z.object({ prompt: z.string().min(1), contactId: z.string().optional() });
+aiRouter.post("/ai/ask", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const parsed = AskBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+  let context: string | undefined;
+  if (parsed.data.contactId) {
+    const contact = await prisma.contact.findFirst({ where: { id: parsed.data.contactId, orgId } });
+    if (contact) {
+      const messages = await loadContactMessages(orgId, contact.id);
+      context = `Contato: ${contact.name}\n` + messages.map((m) => `${m.direction === "outbound" ? "Empresa" : "Cliente"}: ${m.text}`).join("\n");
+    }
+  }
+  try {
+    res.json(await copilotAnswer({ prompt: parsed.data.prompt, context }));
+  } catch (err: any) {
+    res.status(502).json({ error: "ai_error", detail: String(err?.message ?? err) });
+  }
+});
+
+// Analisar lead (score) — persiste no contato
+aiRouter.post("/ai/score-lead", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const parsed = ContactBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+  const contact = await prisma.contact.findFirst({ where: { id: parsed.data.contactId, orgId }, include: { tags: { include: { tag: true } } } });
+  if (!contact) return res.status(404).json({ error: "not_found" });
+  const messages = await loadContactMessages(orgId, contact.id);
+  try {
+    const r = await scoreLead({
+      messages,
+      contactName: contact.name,
+      company: contact.company ?? undefined,
+      tags: contact.tags.map((t) => t.tag.name),
+    });
+    if (r.score !== null) {
+      await prisma.contact.update({
+        where: { id: contact.id },
+        data: { aiScore: r.score, aiTemperature: r.temperature, aiScoreReason: r.reason },
+      });
+    }
+    res.json(r);
+  } catch (err: any) {
+    res.status(502).json({ error: "ai_error", detail: String(err?.message ?? err) });
   }
 });

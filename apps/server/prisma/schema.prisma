@@ -85,6 +85,9 @@ model Contact {
   phone                 String?
   email                 String?
   conversationDeletedAt DateTime? // conversa na "pasta de apagados" do inbox
+  aiScore               Int? // 0-100, calculado pela IA
+  aiTemperature         String? // quente/morno/frio
+  aiScoreReason         String? // explicação do score (explainable AI)
   tags                  ContactTag[]
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
