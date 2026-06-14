@@ -4,10 +4,12 @@ import { saveAuth } from "../lib/auth";
 
 interface Props {
   onAuth: () => void;
+  onBack?: () => void;
+  initialMode?: "login" | "register";
 }
 
-export default function AuthPage({ onAuth }: Props) {
-  const [mode, setMode] = useState<"login" | "register">("login");
+export default function AuthPage({ onAuth, onBack, initialMode = "login" }: Props) {
+  const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -42,6 +44,9 @@ export default function AuthPage({ onAuth }: Props) {
       style={{ backgroundImage: "linear-gradient(rgba(2,6,23,0.45), rgba(2,6,23,0.65)), url(/logo.jpeg)" }}
     >
       <div className="w-full max-w-md rounded-2xl border bg-white/95 p-8 shadow-xl backdrop-blur">
+        {onBack && (
+          <button onClick={onBack} className="mb-4 text-sm text-slate-500 hover:text-slate-800">← Voltar ao site</button>
+        )}
         <div className="mb-6 flex items-center gap-2">
           <img src="/logo.jpeg" alt="Solutions" className="h-10 w-10 rounded-2xl object-cover" />
           <h1 className="text-2xl font-semibold tracking-tight">Solutions CRM</h1>

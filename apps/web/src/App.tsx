@@ -8,6 +8,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
 import { clearAuth, getToken, getUser } from "./lib/auth";
 import AuthPage from "./pages/AuthPage";
+import LandingPage from "./pages/LandingPage";
 import ManagerView from "./pages/ManagerView";
 import SettingsView from "./pages/SettingsView";
 import AutomationsView from "./pages/AutomationsView";
@@ -167,9 +168,11 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 
 export default function App() {
   const [authed, setAuthed] = useState(!!getToken());
+  const [auth, setAuth] = useState<null | "login" | "register">(null);
 
-  if (!authed) return <AuthPage onAuth={() => setAuthed(true)} />;
-  return <CRMApp onLogout={() => setAuthed(false)} />;
+  if (authed) return <CRMApp onLogout={() => { setAuthed(false); setAuth(null); }} />;
+  if (auth) return <AuthPage initialMode={auth} onAuth={() => setAuthed(true)} onBack={() => setAuth(null)} />;
+  return <LandingPage onEnter={() => setAuth("login")} onSignup={() => setAuth("register")} />;
 }
 
 function CRMApp({ onLogout }: { onLogout: () => void }) {
