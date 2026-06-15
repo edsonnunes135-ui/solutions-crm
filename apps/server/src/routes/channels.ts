@@ -102,48 +102,65 @@ channelsRouter.post("/channels/instagram/connect", requireRole("owner", "partner
   const token = (typeof req.body?.token === "string" && req.body.token) || setting?.instagramAccessToken;
   if (!token) return res.status(400).json({ error: "no_token", note: "Cole o token do Instagram em Configurações primeiro." });
 
-  async function g(path: string) {
+  async function gIg(path: string) {
     try {
-      const url = `https://graph.facebook.com/v21.0/${path}${path.includes("?") ? "&" : "?"}access_token=${encodeURIComponent(token)}`;
+      const url = `https://graph.instagram.com/v21.0/${path}${path.includes("?") ? "&" : "?"}access_token=${encodeURIComponent(token!)}`;
+      const r = await fetch(url);
+      return { status: r.status, body: (await r.json()) as any };
+    } catch (e: any) { return { status: 0, body: { error: String(e?.message ?? e) } }; }
+  }
+  async function gFb(path: string) {
+    try {
+      const url = `https://graph.facebook.com/v21.0/${path}${path.includes("?") ? "&" : "?"}access_token=${encodeURIComponent(token!)}`;
       const r = await fetch(url);
       return { status: r.status, body: (await r.json()) as any };
     } catch (e: any) { return { status: 0, body: { error: String(e?.message ?? e) } }; }
   }
 
-  let pageId = "", pageToken = "", igId = "", igUsername = "", pageName = "";
+  // Registra um ChannelAccount do Instagram para a org (rotear inbound por esse id)
+  async function linkIg(externalId: string, username: string) {
+    if (!externalId) return;
+    await prisma.channelAccount.upsert({
+      where: { orgId_channel_externalAccountId: { orgId, channel: "instagram", externalAccountId: externalId } } as any,
+      update: { displayName: username ? "@" + username : "Instagram" },
+      create: { orgId, channel: "instagram", externalAccountId: externalId, displayName: username ? "@" + username : "Instagram" },
+    });
+  }
 
-  // 1) token de usuário/system user → lista páginas com token de página e conta IG
-  const accts = await g("me/accounts?fields=id,name,access_token,instagram_business_account{id,username}");
+  // 1) Token de LOGIN DO INSTAGRAM (graph.instagram.com) — caminho atual
+  const igMe = await gIg("me?fields=user_id,username,name");
+  if (igMe.status === 200 && (igMe.body?.user_id || igMe.body?.id)) {
+    const userId = String(igMe.body.user_id || "");
+    const scopedId = String(igMe.body.id || "");
+    const username = igMe.body.username || "";
+    // registra os dois ids possíveis para casar com o que o webhook enviar
+    await linkIg(userId, username);
+    if (scopedId && scopedId !== userId) await linkIg(scopedId, username);
+    await prisma.orgSetting.update({ where: { orgId }, data: { instagramAccessToken: token!, instagramPageId: userId || scopedId } });
+    return res.json({ ok: true, mode: "instagram_login", igUserId: userId, igScopedId: scopedId, igUsername: username });
+  }
+
+  // 2) Fallback: token de usuário/página do Facebook → resolve Página + conta IG
+  let pageId = "", pageToken = "", igId = "", igUsername = "", pageName = "";
+  const accts = await gFb("me/accounts?fields=id,name,access_token,instagram_business_account{id,username}");
   const pages = Array.isArray(accts.body?.data) ? accts.body.data : [];
   const chosen = pages.find((p: any) => p?.instagram_business_account?.id) || pages[0];
   if (chosen?.id) {
-    pageId = String(chosen.id);
-    pageToken = chosen.access_token || token;
-    pageName = chosen.name || "";
-    igId = chosen.instagram_business_account?.id || "";
-    igUsername = chosen.instagram_business_account?.username || "";
+    pageId = String(chosen.id); pageToken = chosen.access_token || token!; pageName = chosen.name || "";
+    igId = chosen.instagram_business_account?.id || ""; igUsername = chosen.instagram_business_account?.username || "";
   } else {
-    // 2) token já é de página → /me devolve a própria página
-    const me = await g("me?fields=id,name,instagram_business_account{id,username}");
+    const me = await gFb("me?fields=id,name,instagram_business_account{id,username}");
     if (me.body?.id) {
-      pageId = String(me.body.id);
-      pageToken = token;
-      pageName = me.body.name || "";
-      igId = me.body.instagram_business_account?.id || "";
-      igUsername = me.body.instagram_business_account?.username || "";
+      pageId = String(me.body.id); pageToken = token!; pageName = me.body.name || "";
+      igId = me.body.instagram_business_account?.id || ""; igUsername = me.body.instagram_business_account?.username || "";
     }
   }
 
-  if (!pageId) return res.status(400).json({ error: "no_page", note: "O token não enxerga nenhuma Página. Verifique as permissões (pages_show_list, instagram_basic, instagram_manage_messages).", debug: accts.body });
-  if (!igId) return res.status(400).json({ error: "no_ig_account", note: "A Página não tem conta do Instagram vinculada. Garanta que o @solutionscrm está associado à Página.", pageId, pageName });
+  if (!pageId) return res.status(400).json({ error: "no_account", note: "O token não foi reconhecido nem como login do Instagram nem como Página do Facebook. Gere um token de acesso do Instagram na configuração do app.", debugIg: igMe.body, debugFb: accts.body });
+  if (!igId) return res.status(400).json({ error: "no_ig_account", note: "A Página não tem conta do Instagram vinculada.", pageId, pageName });
 
   await prisma.orgSetting.update({ where: { orgId }, data: { instagramAccessToken: pageToken, instagramPageId: pageId } });
-  await prisma.channelAccount.upsert({
-    where: { orgId_channel_externalAccountId: { orgId, channel: "instagram", externalAccountId: igId } } as any,
-    update: { displayName: igUsername ? "@" + igUsername : "Instagram" },
-    create: { orgId, channel: "instagram", externalAccountId: igId, displayName: igUsername ? "@" + igUsername : "Instagram" },
-  });
-
+  await linkIg(igId, igUsername);
   let subscribe: any = null;
   try {
     const r = await fetch(`https://graph.facebook.com/v21.0/${pageId}/subscribed_apps`, {
@@ -153,8 +170,7 @@ channelsRouter.post("/channels/instagram/connect", requireRole("owner", "partner
     });
     subscribe = { status: r.status, body: await r.json() };
   } catch (e: any) { subscribe = { error: String(e?.message ?? e) }; }
-
-  return res.json({ ok: true, pageId, pageName, igId, igUsername, subscribe });
+  return res.json({ ok: true, mode: "facebook_login", pageId, pageName, igId, igUsername, subscribe });
 });
 
 /** Diagnóstico do Instagram: o que o token salvo enxerga (páginas + conta IG). */
@@ -163,15 +179,22 @@ channelsRouter.get("/channels/instagram/diagnose", requireRole("owner", "partner
   const setting = await prisma.orgSetting.findUnique({ where: { orgId } });
   const token = setting?.instagramAccessToken;
   if (!token) return res.status(400).json({ error: "no_token" });
-  async function g(path: string) {
+  async function gIg(path: string) {
+    try {
+      const r = await fetch(`https://graph.instagram.com/v21.0/${path}${path.includes("?") ? "&" : "?"}access_token=${encodeURIComponent(token!)}`);
+      return { status: r.status, body: await r.json() };
+    } catch (e: any) { return { status: 0, body: { error: String(e?.message ?? e) } }; }
+  }
+  async function gFb(path: string) {
     try {
       const r = await fetch(`https://graph.facebook.com/v21.0/${path}${path.includes("?") ? "&" : "?"}access_token=${encodeURIComponent(token!)}`);
       return { status: r.status, body: await r.json() };
     } catch (e: any) { return { status: 0, body: { error: String(e?.message ?? e) } }; }
   }
-  const accounts = await g("me/accounts?fields=id,name,instagram_business_account{id,username},access_token");
-  const me = await g("me?fields=id,name,instagram_business_account{id,username}");
-  res.json({ savedPageId: setting?.instagramPageId || null, accounts, me });
+  const igMe = await gIg("me?fields=user_id,username,name");
+  const fbAccounts = await gFb("me/accounts?fields=id,name,instagram_business_account{id,username}");
+  const accounts = await prisma.channelAccount.findMany({ where: { orgId, channel: "instagram" }, select: { externalAccountId: true, displayName: true } });
+  res.json({ savedId: setting?.instagramPageId || null, instagramLogin: igMe, facebookPages: fbAccounts, registered: accounts });
 });
 
 /**

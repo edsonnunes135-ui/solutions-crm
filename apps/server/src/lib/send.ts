@@ -38,10 +38,10 @@ export async function sendChannelMessage(params: {
     body = { messaging_product: "whatsapp", to: recipient, type: "text", text: { body: text } };
   } else {
     token = setting?.instagramAccessToken || process.env.INSTAGRAM_ACCESS_TOKEN;
-    const pageId = setting?.instagramPageId || process.env.INSTAGRAM_PAGE_ID;
-    if (!token || !pageId) return { sent: false, note: "instagram_not_configured", messageId: msg.id };
-    endpoint = `https://graph.facebook.com/v21.0/${pageId}/messages`;
-    body = { recipient: { id: recipient }, message: { text }, messaging_type: "RESPONSE" };
+    if (!token) return { sent: false, note: "instagram_not_configured", messageId: msg.id };
+    // API do Instagram (login do Instagram): envia pela própria conta via graph.instagram.com.
+    endpoint = `https://graph.instagram.com/v21.0/me/messages`;
+    body = { recipient: { id: recipient }, message: { text } };
   }
 
   if (!recipient) return { sent: false, note: "no_external_identity", messageId: msg.id };
