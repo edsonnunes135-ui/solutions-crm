@@ -47,6 +47,68 @@ export async function suggestReply(params: { messages: ChatMsg[]; contactName?: 
   return { text: text && "text" in text ? text.text.trim() : "" };
 }
 
+/**
+ * Agente de vendas AUTÔNOMO: responde o cliente sozinho, qualifica e decide
+ * quando passar para um humano. Usado na auto-resposta dos canais.
+ * Retorno estruturado: { reply, handoff, handoffReason }.
+ */
+export async function agentReply(params: {
+  messages: ChatMsg[];
+  contactName?: string;
+  company?: string;
+  brandName?: string;
+}): Promise<{ reply: string; handoff: boolean; handoffReason: string; note?: string }> {
+  if (!aiEnabled()) {
+    return { reply: "", handoff: false, handoffReason: "", note: "ai_not_configured" };
+  }
+  const brand = params.brandName?.trim() || "a empresa";
+  const r = await client().messages.create({
+    model: MODEL,
+    max_tokens: 700,
+    system:
+      `Você é o atendente virtual de ${brand}, falando com clientes pelo WhatsApp/Instagram em português do Brasil. ` +
+      "Seja cordial, objetivo e humano (no máximo 3 frases por mensagem). Seu papel: acolher, entender a necessidade, " +
+      "qualificar (orçamento, prazo, o que procura) e ajudar a avançar a venda. NUNCA invente preços, prazos, estoque ou " +
+      "políticas que não estejam no histórico — se não souber, diga que vai confirmar. " +
+      "Defina handoff=true quando: o cliente pedir explicitamente falar com uma pessoa; demonstrar intenção clara de fechar/comprar; " +
+      "fizer uma reclamação séria; ou pedir algo fora do seu alcance (preço final, contrato, suporte técnico complexo). " +
+      "Quando handoff=true, escreva uma resposta curta avisando que um atendente humano vai continuar em instantes. " +
+      "Caso contrário, handoff=false e siga a conversa naturalmente.",
+    messages: [
+      {
+        role: "user",
+        content: `Cliente: ${params.contactName ?? "Cliente"}${params.company ? ` (${params.company})` : ""}\n\nHistórico:\n${transcript(params.messages)}\n\nGere a próxima resposta do atendente.`,
+      },
+    ],
+    output_config: {
+      format: {
+        type: "json_schema",
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            reply: { type: "string" },
+            handoff: { type: "boolean" },
+            handoffReason: { type: "string" },
+          },
+          required: ["reply", "handoff", "handoffReason"],
+        },
+      },
+    } as any,
+  });
+  const block = r.content.find((b) => b.type === "text");
+  try {
+    const parsed = JSON.parse(block && "text" in block ? block.text : "{}");
+    return {
+      reply: String(parsed.reply ?? "").trim(),
+      handoff: Boolean(parsed.handoff),
+      handoffReason: String(parsed.handoffReason ?? "").trim(),
+    };
+  } catch {
+    return { reply: "", handoff: false, handoffReason: "" };
+  }
+}
+
 /** Resume a conversa e sugere a próxima melhor ação. */
 export async function summarizeConversation(params: { messages: ChatMsg[]; contactName?: string }) {
   if (!aiEnabled()) {

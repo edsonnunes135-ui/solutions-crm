@@ -313,8 +313,8 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
         <div className="p-4 pt-0 space-y-4">
           <div className="flex items-center justify-between rounded-2xl border p-3">
             <div className="pr-3">
-              <div className="text-sm font-medium">Resposta automática com IA</div>
-              <div className="text-xs text-slate-500">Quando um cliente manda mensagem, a IA responde sozinha (24/7) usando o histórico. Requer ANTHROPIC_API_KEY e um canal conectado.</div>
+              <div className="text-sm font-medium">Agente de IA autônomo (atende sozinho 24/7)</div>
+              <div className="text-xs text-slate-500">A IA recebe, qualifica e responde os clientes sozinha no WhatsApp/Instagram, pontua cada lead automaticamente e avisa a equipe quando o cliente quer fechar ou falar com uma pessoa (passa a vez ao humano). Quando alguém "Assume" a conversa, o agente para. Requer ANTHROPIC_API_KEY e um canal conectado.</div>
             </div>
             <button
               onClick={toggleAiAutoReply}

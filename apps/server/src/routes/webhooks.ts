@@ -2,7 +2,7 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { enqueueEvent } from "../lib/queue";
 import { pushToOrg } from "../lib/push";
-import { aiEnabled, suggestReply } from "../lib/ai";
+import { aiEnabled, agentReply, scoreLead } from "../lib/ai";
 import { sendChannelMessage } from "../lib/send";
 import {
   normalizeMetaWebhook,
@@ -112,23 +112,58 @@ webhooksRouter.post("/webhooks/meta", async (req, res) => {
       url: "/",
     }).catch(() => {});
 
-    // Auto-resposta com IA (se ativada e configurada)
+    // IA: pontuação automática do lead + agente autônomo (se ativados)
     try {
-      const setting = await prisma.orgSetting.findUnique({ where: { orgId } });
-      if (setting?.aiAutoReply && aiEnabled()) {
+      if (aiEnabled()) {
+        const setting = await prisma.orgSetting.findUnique({ where: { orgId } });
         const history = await prisma.message.findMany({
           where: { orgId, conversationId: conv.id },
           orderBy: { sentAt: "asc" },
           take: 30,
           select: { direction: true, text: true },
         });
-        const r = await suggestReply({ messages: history, contactName: contact.name });
-        if (r.text) {
-          await sendChannelMessage({ orgId, conversationId: conv.id, channel: m.channel, text: r.text });
+
+        // 1) pontua o lead automaticamente (alimenta "Leads quentes para atacar hoje")
+        try {
+          const s = await scoreLead({
+            messages: history,
+            contactName: contact.name,
+            company: (contact as any).company ?? undefined,
+            tags: (contact as any).tags ?? [],
+          });
+          if (s.score != null) {
+            await prisma.contact.update({
+              where: { id: contact.id },
+              data: { aiScore: s.score, aiTemperature: s.temperature, aiScoreReason: s.reason },
+            });
+          }
+        } catch {
+          /* score é best-effort */
+        }
+
+        // 2) agente autônomo responde — só se ativado e nenhum humano assumiu a conversa
+        const humanHandling = !!(conv as any).assigneeId || ((conv as any).status && (conv as any).status !== "open");
+        if (setting?.aiAutoReply && !humanHandling) {
+          const a = await agentReply({
+            messages: history,
+            contactName: contact.name,
+            company: (contact as any).company ?? undefined,
+            brandName: setting.brandName ?? undefined,
+          });
+          if (a.reply) {
+            await sendChannelMessage({ orgId, conversationId: conv.id, channel: m.channel, text: a.reply });
+          }
+          if (a.handoff) {
+            pushToOrg(orgId, {
+              title: `🔥 ${contact.name} precisa de atendimento humano`,
+              body: a.handoffReason || "O agente de IA pediu para passar a conversa para uma pessoa.",
+              url: "/",
+            }).catch(() => {});
+          }
         }
       }
     } catch {
-      // auto-resposta é best-effort; nunca quebra o webhook
+      // IA é best-effort; nunca quebra o webhook
     }
   }
 
