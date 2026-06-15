@@ -350,7 +350,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
     setAiBusy("reply"); setSendNote("");
     try {
       const r = await apiPost("/ai/suggest-reply", { contactId: selectedContact.id }, token);
-      if (r.note === "ai_not_configured") setSendNote("IA não configurada — adicione ANTHROPIC_API_KEY no servidor (Configurações do Render).");
+      if (r.note === "ai_not_configured") setSendNote("IA não configurada. Adicione ANTHROPIC_API_KEY no servidor (Configurações do Render).");
       else if (r.text) setMessageDraft(r.text);
     } catch (err: any) { setSendNote(`Falha na IA: ${err.message}`); }
     finally { setAiBusy(""); }
@@ -371,7 +371,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
     setAiBusy("score");
     try {
       const r = await apiPost("/ai/score-lead", { contactId: selectedContact.id }, token);
-      if (r.note === "ai_not_configured") setAiSummary("IA não configurada — adicione ANTHROPIC_API_KEY no servidor.");
+      if (r.note === "ai_not_configured") setAiSummary("IA não configurada. Adicione ANTHROPIC_API_KEY no servidor.");
       else await reload();
     } catch (err: any) { setAiSummary(`Falha na IA: ${err.message}`); }
     finally { setAiBusy(""); }
@@ -411,7 +411,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
         setSendNote(`Falha no envio: ${err.message}`);
       }
     } else {
-      setSendNote("Este contato ainda não tem conversa ativa — ela é criada quando ele manda a primeira mensagem no WhatsApp.");
+      setSendNote("Este contato ainda não tem conversa ativa. Ela é criada quando ele manda a primeira mensagem no WhatsApp.");
     }
   }
 
@@ -554,7 +554,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
     setAiResult("");
     try {
       const context = selectedContact
-        ? `Contato: ${selectedContact.name} (${selectedContact.company ?? "—"}). Última mensagem: "${selectedContact.lastMessage ?? "—"}". Tags: ${(selectedContact.tags ?? []).join(", ") || "nenhuma"}.`
+        ? `Contato: ${selectedContact.name} (${selectedContact.company ?? "não informada"}). Última mensagem: "${selectedContact.lastMessage ?? "sem mensagens"}". Tags: ${(selectedContact.tags ?? []).join(", ") || "nenhuma"}.`
         : "Nenhum contato selecionado.";
       const data = await apiPost("/ai/summarize", { context, goal: aiPrompt }, token);
       setAiResult(
@@ -698,7 +698,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
           <form onSubmit={submitNewDeal} className="space-y-3">
             <div>
               <label className="mb-1 block text-sm font-medium">Título *</label>
-              <Input required value={newDealForm.title} onChange={(e: any) => setNewDealForm((p) => ({ ...p, title: e.target.value }))} placeholder="Plano Growth – Loja Aurora" />
+              <Input required value={newDealForm.title} onChange={(e: any) => setNewDealForm((p) => ({ ...p, title: e.target.value }))} placeholder="Plano Growth - Loja Aurora" />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Valor (R$)</label>
@@ -742,7 +742,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
               <h1 className="text-2xl font-semibold tracking-tight text-white">{brand.brandName || "Solutions"}</h1>
               {!brand.brandName && <span className="rounded-full border border-white/30 px-2 py-0.5 text-xs text-white/80">CRM Conversacional</span>}
             </div>
-            <p className="text-sm text-slate-300">Olá, {user?.name ?? "usuário"} — centralize WhatsApp + Instagram, funis, tarefas, automações, BI e IA.</p>
+            <p className="text-sm text-slate-300">Olá, {user?.name ?? "usuário"}! Centralize WhatsApp + Instagram, funis, tarefas, automações, BI e IA.</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative w-full md:w-96">

@@ -97,7 +97,7 @@ export default function AutomationsView({ token, automations, onChanged }: Props
       <div className="p-4 pt-0 space-y-3">
         {automations.length === 0 && (
           <div className="rounded-2xl border p-6 text-center text-sm text-slate-500">
-            Nenhum fluxo ainda. Crie o primeiro — ex.: responder automaticamente quem manda "preço".
+            Nenhum fluxo ainda. Crie o primeiro. Ex.: responder automaticamente quem manda "preço".
           </div>
         )}
         {automations.map((a) => (
@@ -192,7 +192,7 @@ export default function AutomationsView({ token, automations, onChanged }: Props
                   <label className="mb-1 flex items-center gap-1 text-sm font-medium"><TagIcon className="h-3.5 w-3.5" /> Adicionar tag ao contato</label>
                   <Input value={tagName} onChange={(e: any) => setTagName(e.target.value)} placeholder="Quente" />
                 </div>
-                <p className="text-xs text-slate-500">Preencha só o que quiser — pelo menos uma ação.</p>
+                <p className="text-xs text-slate-500">Preencha só o que quiser (pelo menos uma ação).</p>
               </div>
 
               <div className="flex gap-2">

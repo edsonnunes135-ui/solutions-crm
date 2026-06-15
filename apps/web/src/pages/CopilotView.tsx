@@ -47,7 +47,7 @@ export default function CopilotView({ token }: { token: string }) {
         <div className="flex items-center gap-2 text-base font-semibold">
           <Sparkles className="h-5 w-5 text-violet-500" /> Copiloto de Vendas (IA)
         </div>
-        <div className="text-sm text-slate-500">Powered by Claude — peça mensagens, estratégias, respostas a objeções e mais</div>
+        <div className="text-sm text-slate-500">Powered by Claude. Peça mensagens, estratégias, respostas a objeções e mais.</div>
       </div>
 
       {enabled === false && (

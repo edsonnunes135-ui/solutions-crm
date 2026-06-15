@@ -100,7 +100,7 @@ export default function CampaignsView({ token, contacts }: Props) {
                 <>
                   <div className="font-medium">Campanha enviada!</div>
                   <div className="mt-1">✅ Entregues: {result.sent} • ⚠️ Falhas: {result.failed} • ⏭️ Sem conversa ativa: {result.skipped}</div>
-                  {result.skipped > 0 && <div className="mt-1 text-xs">Contatos "sem conversa ativa" ainda não mandaram mensagem no canal — a Meta só permite responder conversas iniciadas pelo cliente (ou via template aprovado, em breve).</div>}
+                  {result.skipped > 0 && <div className="mt-1 text-xs">Contatos "sem conversa ativa" ainda não mandaram mensagem no canal. A Meta só permite responder conversas iniciadas pelo cliente (ou via template aprovado, em breve).</div>}
                   {result.errors?.length > 0 && <div className="mt-1 text-xs">{result.errors.join(" • ")}</div>}
                 </>
               )}
@@ -108,7 +108,7 @@ export default function CampaignsView({ token, contacts }: Props) {
           )}
 
           <div className="mt-4 rounded-2xl border p-4 text-xs text-slate-500 max-w-2xl">
-            ⚠️ Regra da Meta: mensagens em massa só chegam para quem já conversou com você nas últimas 24h. Para alcançar contatos frios é preciso usar templates aprovados — recurso que entra na próxima versão.
+            ⚠️ Regra da Meta: mensagens em massa só chegam para quem já conversou com você nas últimas 24h. Para alcançar contatos frios é preciso usar templates aprovados (recurso que entra na próxima versão).
           </div>
         </div>
       </Card>

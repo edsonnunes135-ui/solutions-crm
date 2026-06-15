@@ -110,7 +110,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
     }
 
     // 2) fallback: ativação manual (enquanto o Mercado Pago não está configurado)
-    if (!confirm(`Ativar o plano ${planName} (R$ ${price}/usuário/mês)?\n\nO pagamento automático ainda não está ligado — o plano será liberado manualmente.`)) return;
+    if (!confirm(`Ativar o plano ${planName} (R$ ${price}/usuário/mês)?\n\nO pagamento automático ainda não está ligado. O plano será liberado manualmente.`)) return;
     try {
       await apiPut("/billing/plan", { plan: planKey }, token);
       const b = await apiGet("/billing", token);
@@ -214,7 +214,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
       await apiDelete("/billing/plan", token);
       const b = await apiGet("/billing", token);
       setBilling(b);
-      setPlanMsg("Plano desativado — sua conta voltou ao plano gratuito.");
+      setPlanMsg("Plano desativado. Sua conta voltou ao plano gratuito.");
     } catch (err: any) {
       setPlanMsg(`Erro: ${err.message}`);
     }
@@ -281,7 +281,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           {billing && (
             <div className="text-sm text-slate-500">
               Plano atual: <span className="font-medium text-slate-900">{billing.planName}</span>
-              {billing.trialDaysLeft !== null && ` — ${billing.trialDaysLeft} dia(s) restante(s) de teste`}
+              {billing.trialDaysLeft !== null && ` • ${billing.trialDaysLeft} dia(s) restante(s) de teste`}
               {" • "}{billing.usage.users}/{billing.limits.users >= 999 ? "∞" : billing.limits.users} usuários
               {" • "}{billing.usage.contacts}/{billing.limits.contacts >= 100000 ? "∞" : billing.limits.contacts} contatos
             </div>
@@ -304,7 +304,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
                       <li>• {p.users >= 999 ? "Usuários ilimitados" : `Até ${p.users} usuários`}</li>
                       <li>• {p.contacts >= 100000 ? "Contatos ilimitados" : `${p.contacts.toLocaleString("pt-BR")} contatos`}</li>
                       <li>• {p.automations >= 999 ? "Automações ilimitadas" : `${p.automations} automações`}</li>
-                      <li>• {p.broadcast ? "✅ Campanhas em massa" : "— Sem campanhas"}</li>
+                      <li>{p.broadcast ? "✅ Campanhas em massa" : "❌ Sem campanhas em massa"}</li>
                     </ul>
                     <button
                       onClick={() => choosePlan(p.key, p.name, p.price)}
@@ -336,7 +336,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           <div className="flex items-center gap-2 text-base font-semibold">
             <Sparkles className="h-4 w-4 text-sky-500" /> Templates por nicho
           </div>
-          <div className="text-sm text-slate-500">Comece com um funil pronto para o seu segmento — 1 clique e está configurado.</div>
+          <div className="text-sm text-slate-500">Comece com um funil pronto para o seu segmento. Configure em 1 clique.</div>
         </div>
         <div className="p-4 pt-0">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -390,7 +390,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           <div className="flex items-center justify-between rounded-2xl border p-3">
             <div className="pr-3">
               <div className="flex items-center gap-1 text-sm font-medium"><Bell className="h-3.5 w-3.5" /> Notificações push</div>
-              <div className="text-xs text-slate-500">Receba um aviso no aparelho quando chegar lead ou mensagem novos — mesmo com o app fechado.</div>
+              <div className="text-xs text-slate-500">Receba um aviso no aparelho quando chegar lead ou mensagem novos, mesmo com o app fechado.</div>
             </div>
             <button onClick={ativarPush} disabled={!pushSupported()} className="shrink-0 rounded-2xl bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50">
               Ativar neste aparelho
@@ -406,7 +406,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           <div className="flex items-center gap-2 text-base font-semibold">
             <Palette className="h-4 w-4 text-pink-500" /> Marca personalizada (white-label)
           </div>
-          <div className="text-sm text-slate-500">Use sua própria marca — ideal para revender o sistema como se fosse seu.</div>
+          <div className="text-sm text-slate-500">Use sua própria marca. Ideal para revender o sistema como se fosse seu.</div>
         </div>
         <div className="p-4 pt-0">
           <form onSubmit={saveBrand} className="grid gap-3 md:grid-cols-2 max-w-2xl">
@@ -542,7 +542,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           <div className="flex items-center gap-2 text-base font-semibold">
             <UserPlus className="h-4 w-4" /> Equipe e acessos
           </div>
-          <div className="text-sm text-slate-500">Crie logins para vendedores e gestores — cada um entra com o próprio e-mail e senha</div>
+          <div className="text-sm text-slate-500">Crie logins para vendedores e gestores. Cada um entra com o próprio e-mail e senha.</div>
         </div>
         <div className="p-4 pt-0 space-y-4">
           <div className="overflow-x-auto">

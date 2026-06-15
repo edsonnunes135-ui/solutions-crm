@@ -112,7 +112,7 @@ export default function ManagerView({ token, hideValues = false }: { token: stri
           </div>
           <div className="p-4 pt-0">
             {data.lossReasons.length === 0 ? (
-              <div className="text-sm text-slate-500">Nenhuma perda registrada — bom sinal! 🎉</div>
+              <div className="text-sm text-slate-500">Nenhuma perda registrada. Bom sinal! 🎉</div>
             ) : (
               <div className="space-y-2">
                 {data.lossReasons.map((r: any) => {

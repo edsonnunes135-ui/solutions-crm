@@ -191,7 +191,7 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
           <FeatureCard icon={<KanbanSquare className="h-5 w-5 text-emerald-400" />} title="Funil visual" desc="Arraste e solte negócios entre etapas, com motivos de perda e dono de cada deal." />
           <FeatureCard icon={<Megaphone className="h-5 w-5 text-orange-400" />} title="Campanhas em massa" desc="Dispare mensagens segmentadas por tag e acompanhe entregas." />
           <FeatureCard icon={<LineChart className="h-5 w-5 text-sky-400" />} title="BI e painel do gestor" desc="Receita, taxa de ganho, desempenho do time e motivos de perda em tempo real." />
-          <FeatureCard icon={<Users className="h-5 w-5 text-blue-400" />} title="Equipe e papéis" desc="CEO, sócio, gestor, vendedor e visualização — cada um com o acesso certo." />
+          <FeatureCard icon={<Users className="h-5 w-5 text-blue-400" />} title="Equipe e papéis" desc="CEO, sócio, gestor, vendedor e visualização, cada um com o acesso certo." />
           <FeatureCard icon={<Bell className="h-5 w-5 text-rose-400" />} title="Notificações push" desc="Avisos no celular quando chega lead ou mensagem, mesmo com o app fechado." />
           <FeatureCard icon={<ShieldCheck className="h-5 w-5 text-emerald-400" />} title="Seguro e na nuvem" desc="Dados isolados por empresa, senha forte, e disponível de qualquer lugar." />
         </div>
@@ -283,7 +283,7 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
                     {row.values.map((v, i) => (
                       <td key={i} className="px-4 py-3 text-center">
                         {typeof v === "boolean"
-                          ? (v ? <Check className="mx-auto h-4 w-4 text-emerald-400" /> : <span className="text-slate-600">—</span>)
+                          ? (v ? <Check className="mx-auto h-4 w-4 text-emerald-400" /> : <span className="text-slate-600">✕</span>)
                           : <span className="text-slate-200">{v}</span>}
                       </td>
                     ))}
@@ -301,7 +301,7 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
         <div className="mt-8 space-y-3">
           <Faq q="Preciso de cartão para testar?" a="Não. Você cria a conta e usa por 14 dias grátis. Só paga se decidir continuar." />
           <Faq q="Funciona com WhatsApp oficial?" a="Sim. O Solutions integra com a API oficial do WhatsApp (Meta) e com o Instagram Direct." />
-          <Faq q="A IA responde sozinha de verdade?" a="Sim. Com a auto-resposta ativada, a IA lê o histórico e responde o cliente na hora, 24/7 — e você pode assumir a conversa quando quiser." />
+          <Faq q="A IA responde sozinha de verdade?" a="Sim. Com a auto-resposta ativada, a IA lê o histórico e responde o cliente na hora, 24/7, e você pode assumir a conversa quando quiser." />
           <Faq q="Consigo usar no celular?" a="Sim. É um app instalável (PWA): adicione à tela inicial e use como um aplicativo, com notificações push." />
           <Faq q="Posso cancelar quando quiser?" a="Sim, sem multa. A assinatura é mensal e o cancelamento é imediato pelo painel." />
         </div>
@@ -311,7 +311,7 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
       <section className="border-t border-white/10 bg-gradient-to-b from-slate-950 to-slate-900 py-20">
         <div className="mx-auto max-w-3xl px-4 text-center">
           <h2 className="text-3xl font-bold md:text-4xl">Pronto para vender mais com menos esforço?</h2>
-          <p className="mt-3 text-slate-300">Comece agora — em 5 minutos você está atendendo seus clientes com IA.</p>
+          <p className="mt-3 text-slate-300">Comece agora. Em 5 minutos você está atendendo seus clientes com IA.</p>
           <button onClick={onSignup} className="mt-6 rounded-2xl bg-sky-500 px-8 py-3 font-medium hover:bg-sky-400">Criar minha conta grátis</button>
         </div>
       </section>
