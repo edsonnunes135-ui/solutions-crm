@@ -36,3 +36,15 @@ html.dark input::placeholder, html.dark textarea::placeholder { color: #6b7a96 !
 
 /* tabelas */
 html.dark table { color: #cbd5e1; }
+
+/* ── Tema claro sobre o shell escuro ──────────────────────────────────────
+   O shell do app é SEMPRE escuro (fundo tecnológico). Por isso, textos
+   "soltos" sobre o shell (títulos de seção, subtítulos) precisam ser claros
+   nos dois temas — senão, no tema claro, ficam pretos e somem no fundo.
+   Já o texto DENTRO dos cards claros volta a ser escuro no tema claro. */
+.app-shell { color: #e2e8f0; }
+
+html:not(.dark) .app-shell :is(
+  .bg-white, .bg-slate-50, .bg-slate-100, .bg-sky-50, .bg-amber-50,
+  .bg-red-50, .bg-green-50, .bg-violet-50, .bg-blue-50, .bg-emerald-50
+) { color: #0f172a; }

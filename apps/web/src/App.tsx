@@ -318,7 +318,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
   function memberName(userId: string | null) {
     if (!userId) return null;
-    return team.find((m) => m.userId === userId)?.name ?? "—";
+    return team.find((m) => m.userId === userId)?.name ?? "";
   }
 
   function QueueChip({ conv }: { conv: any }) {
@@ -526,7 +526,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   }
 
   // ── Analytics chart (dados reais da API) ──────────────────────────────────
-  const analyticsSeries = series.length > 0 ? series : [{ day: "—", leads: 0, wins: 0 }];
+  const analyticsSeries = series.length > 0 ? series : [{ day: "", leads: 0, wins: 0 }];
 
   // Exporta contatos + negócios em CSV
   function exportCSV() {
@@ -588,7 +588,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
   return (
     <div
-      className="min-h-screen bg-slate-950 bg-cover bg-center bg-fixed"
+      className="app-shell min-h-screen bg-slate-950 bg-cover bg-center bg-fixed"
       style={{ backgroundImage: "linear-gradient(rgba(2,6,23,0.55), rgba(2,6,23,0.75)), url(/logo.jpeg)" }}
     >
       {brand.brandColor && <div style={{ height: 4, background: brand.brandColor }} />}
@@ -920,7 +920,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                                   </div>
                                   <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
                                     <Building2 className="h-3.5 w-3.5" />
-                                    <span className="truncate">{c.company ?? "—"}</span>
+                                    <span className="truncate">{c.company ?? ""}</span>
                                   </div>
                                 </div>
                                 <div className="flex shrink-0 items-center gap-1">
@@ -1125,7 +1125,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                                       <Trash2 className="h-3.5 w-3.5" />
                                     </button>
                                   </div>
-                                  <div className="mt-1 text-xs text-slate-500">{money(d.value ?? 0)} • {d.contact?.name ?? "—"}</div>
+                                  <div className="mt-1 text-xs text-slate-500">{money(d.value ?? 0)}{d.contact?.name ? ` • ${d.contact.name}` : ""}</div>
                                   <div className="mt-3 flex flex-wrap gap-1">
                                     {stages.filter((x: any) => x.id !== s.id).slice(0, 3).map((x: any) => (
                                       <Button key={x.id} variant="outline" className="px-2 py-1 text-xs" onClick={() => moveDeal(d.id, x.id)}>
@@ -1175,7 +1175,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                               <div className="truncate font-medium">{c.name}</div>
                               <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
                                 <Building2 className="h-4 w-4" />
-                                <span className="truncate">{c.company ?? "—"}</span>
+                                <span className="truncate">{c.company ?? ""}</span>
                               </div>
                               {c.phone && <div className="mt-1 text-xs text-slate-400">{c.phone}</div>}
                             </div>

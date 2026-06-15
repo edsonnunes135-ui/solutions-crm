@@ -107,7 +107,7 @@ export default function HomeView({ user, kpis, contacts, deals, tasks, money, on
                 <button key={c.id} onClick={() => { onSelectContact(c.id); onGo("inbox"); }} className="flex w-full items-center justify-between rounded-2xl border p-3 text-left hover:bg-slate-50">
                   <div>
                     <div className="font-medium">{c.name}</div>
-                    <div className="text-xs text-slate-500">{c.company ?? c.phone ?? "—"}</div>
+                    <div className="text-xs text-slate-500">{c.company ?? c.phone ?? ""}</div>
                   </div>
                   {c.aiScore != null ? (
                     <span className={`rounded-full border px-2 py-0.5 text-xs ${c.aiTemperature === "quente" ? "border-red-300 bg-red-50 text-red-700" : c.aiTemperature === "morno" ? "border-amber-300 bg-amber-50 text-amber-700" : "border-sky-300 bg-sky-50 text-sky-700"}`}>

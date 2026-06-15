@@ -55,7 +55,7 @@ export default function ManagerView({ token, hideValues = false }: { token: stri
           <div className="grid gap-3 md:grid-cols-4">
             <KPI title="Receita (ganhos)" value={money(t.revenue)} hint={`${t.dealsWon} negócios fechados`} />
             <KPI title="Pipeline aberto" value={money(t.pipelineValue)} hint={`${t.dealsOpen} em andamento`} />
-            <KPI title="Taxa de ganho" value={t.winRate !== null ? `${t.winRate}%` : "—"} hint={`${t.dealsLost} perdidos`} />
+            <KPI title="Taxa de ganho" value={t.winRate !== null ? `${t.winRate}%` : "0%"} hint={`${t.dealsLost} perdidos`} />
             <KPI title="Leads" value={t.contacts} hint={`${t.tasksOpen} tarefas abertas`} />
           </div>
         </div>
