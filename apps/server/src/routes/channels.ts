@@ -15,6 +15,30 @@ channelsRouter.use(requireAuth);
  * recebidas cheguem ao nosso webhook. Necessário ao conectar um número novo.
  * Usa o token salvo da organização.
  */
+/**
+ * Diagnóstico do WhatsApp: usa o token salvo para checar o status real do
+ * número e da conta na Meta (registrado? plataforma Cloud API? assinado?).
+ */
+channelsRouter.get("/channels/whatsapp/diagnose", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const setting = await prisma.orgSetting.findUnique({ where: { orgId } });
+  const token = setting?.whatsappAccessToken;
+  const phoneId = setting?.whatsappPhoneNumberId;
+  if (!token || !phoneId) return res.status(400).json({ error: "missing_config" });
+
+  async function g(path: string) {
+    try {
+      const r = await fetch(`https://graph.facebook.com/v21.0/${path}`, { headers: { Authorization: `Bearer ${token}` } });
+      return { status: r.status, body: await r.json() };
+    } catch (e: any) { return { error: String(e?.message ?? e) }; }
+  }
+
+  const phone = await g(`${phoneId}?fields=id,display_phone_number,verified_name,code_verification_status,platform_type,status,quality_rating,name_status`);
+  const wabaId = (req.query.wabaId as string) || "";
+  const subscribed = wabaId ? await g(`${wabaId}/subscribed_apps`) : null;
+  res.json({ phoneNumberId: phoneId, phone, subscribed });
+});
+
 const SubscribeBody = z.object({ wabaId: z.string().min(5) });
 channelsRouter.post("/channels/whatsapp/subscribe", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
