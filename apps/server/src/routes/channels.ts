@@ -39,6 +39,34 @@ channelsRouter.get("/channels/whatsapp/diagnose", requireRole("owner", "partner"
   res.json({ phoneNumberId: phoneId, phone, subscribed });
 });
 
+/**
+ * Registra (ativa) o número na Cloud API com um PIN de 6 dígitos.
+ * Última etapa para o número sair de PENDING e passar a receber/enviar.
+ */
+const RegisterBody = z.object({ pin: z.string().regex(/^\d{6}$/) });
+channelsRouter.post("/channels/whatsapp/register", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const parsed = RegisterBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_pin", note: "Informe um PIN de 6 dígitos." });
+
+  const setting = await prisma.orgSetting.findUnique({ where: { orgId } });
+  const token = setting?.whatsappAccessToken;
+  const phoneId = setting?.whatsappPhoneNumberId;
+  if (!token || !phoneId) return res.status(400).json({ error: "missing_config" });
+
+  try {
+    const r = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ messaging_product: "whatsapp", pin: parsed.data.pin }),
+    });
+    const data: any = await r.json();
+    return res.json({ ok: r.ok, status: r.status, data });
+  } catch (err: any) {
+    return res.status(502).json({ ok: false, error: String(err?.message ?? err) });
+  }
+});
+
 const SubscribeBody = z.object({ wabaId: z.string().min(5) });
 channelsRouter.post("/channels/whatsapp/subscribe", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
