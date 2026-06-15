@@ -202,7 +202,19 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
   // Marca white-label (por organização)
   const [brand, setBrand] = useState<{ brandName?: string; brandColor?: string; brandLogoUrl?: string }>({});
-  useEffect(() => { apiGet("/branding", token).then(setBrand).catch(() => {}); }, [token]);
+  useEffect(() => {
+    apiGet("/branding", token)
+      .then((b) => {
+        setBrand(b);
+        // White-label: o título da aba/PWA passa a exibir a marca do cliente
+        if (b?.brandName) document.title = b.brandName;
+        if (b?.brandLogoUrl) {
+          const link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
+          if (link) link.href = b.brandLogoUrl;
+        }
+      })
+      .catch(() => {});
+  }, [token]);
 
   // Command palette (Ctrl/Cmd + K)
   const [showPalette, setShowPalette] = useState(false);
