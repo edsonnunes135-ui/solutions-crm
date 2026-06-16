@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAuth, AuthedRequest } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { aiEnabled, suggestReply, summarizeConversation, copilotAnswer, scoreLead } from "../lib/ai";
+import { planForOrg } from "./billing";
 
 /**
  * IA do Solutions — powered by Claude (Anthropic).
@@ -11,8 +12,18 @@ import { aiEnabled, suggestReply, summarizeConversation, copilotAnswer, scoreLea
 export const aiRouter = Router();
 aiRouter.use(requireAuth);
 
-aiRouter.get("/ai/status", (_req, res) => {
-  res.json({ enabled: aiEnabled() });
+/** Gate: recursos de IA só nos planos com ai=true (Pro/Business e trial). */
+async function requireAiPlan(req: AuthedRequest, res: any, next: any) {
+  const plan = await planForOrg(req.user!.orgId);
+  if (!plan.ai) {
+    return res.status(402).json({ error: "plan_upgrade_required", resource: "ai", note: "Os recursos de IA estão disponíveis nos planos Pro e Business. Faça upgrade para usar a IA." });
+  }
+  next();
+}
+
+aiRouter.get("/ai/status", async (req: AuthedRequest, res) => {
+  const plan = await planForOrg(req.user!.orgId);
+  res.json({ enabled: aiEnabled() && plan.ai, configured: aiEnabled(), planAllows: plan.ai });
 });
 
 async function loadContactMessages(orgId: string, contactId: string) {
@@ -27,7 +38,7 @@ async function loadContactMessages(orgId: string, contactId: string) {
 
 // Sugerir resposta para um contato
 const ContactBody = z.object({ contactId: z.string().min(1) });
-aiRouter.post("/ai/suggest-reply", async (req: AuthedRequest, res) => {
+aiRouter.post("/ai/suggest-reply", requireAiPlan, async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const parsed = ContactBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
@@ -42,7 +53,7 @@ aiRouter.post("/ai/suggest-reply", async (req: AuthedRequest, res) => {
 });
 
 // Resumir conversa
-aiRouter.post("/ai/summarize", async (req: AuthedRequest, res) => {
+aiRouter.post("/ai/summarize", requireAiPlan, async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const parsed = ContactBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
@@ -58,7 +69,7 @@ aiRouter.post("/ai/summarize", async (req: AuthedRequest, res) => {
 
 // Copiloto (pergunta livre, com contexto opcional do contato)
 const AskBody = z.object({ prompt: z.string().min(1), contactId: z.string().optional() });
-aiRouter.post("/ai/ask", async (req: AuthedRequest, res) => {
+aiRouter.post("/ai/ask", requireAiPlan, async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const parsed = AskBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
@@ -78,7 +89,7 @@ aiRouter.post("/ai/ask", async (req: AuthedRequest, res) => {
 });
 
 // Analisar lead (score) — persiste no contato
-aiRouter.post("/ai/score-lead", async (req: AuthedRequest, res) => {
+aiRouter.post("/ai/score-lead", requireAiPlan, async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const parsed = ContactBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });

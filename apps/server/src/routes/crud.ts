@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { enqueueEvent } from "../lib/queue";
 import { requireAuth, requireRole, AuthedRequest } from "../middleware/auth";
+import { planForOrg } from "./billing";
 
 export const crudRouter = Router();
 crudRouter.use(requireAuth);
@@ -45,6 +46,13 @@ crudRouter.post("/contacts", async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const parsed = ContactCreate.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", issues: parsed.error.issues });
+
+  // trava por plano: limite de contatos
+  const plan = await planForOrg(orgId);
+  const count = await prisma.contact.count({ where: { orgId } });
+  if (count >= plan.contacts) {
+    return res.status(402).json({ error: "plan_limit_reached", resource: "contacts", limit: plan.contacts, note: `Você atingiu o limite de ${plan.contacts.toLocaleString("pt-BR")} contatos do seu plano. Faça upgrade para adicionar mais.` });
+  }
 
   const { tags = [], ...data } = parsed.data;
 
@@ -336,6 +344,13 @@ crudRouter.post("/automations", async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const parsed = AutomationCreate.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", issues: parsed.error.issues });
+
+  // trava por plano: limite de automações
+  const plan = await planForOrg(orgId);
+  const count = await prisma.automation.count({ where: { orgId } });
+  if (count >= plan.automations) {
+    return res.status(402).json({ error: "plan_limit_reached", resource: "automations", limit: plan.automations, note: `Você atingiu o limite de ${plan.automations} automações do seu plano. Faça upgrade para criar mais.` });
+  }
 
   const a = await prisma.automation.create({
     data: {

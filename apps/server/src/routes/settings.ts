@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 import { requireAuth, requireRole, AuthedRequest } from "../middleware/auth";
+import { planForOrg } from "./billing";
 
 export const settingsRouter = Router();
 settingsRouter.use(requireAuth);
@@ -133,6 +134,13 @@ settingsRouter.post("/team", requireRole("owner", "partner", "admin"), async (re
   const orgId = req.user!.orgId;
   const parsed = MemberCreate.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", issues: parsed.error.issues });
+
+  // trava por plano: limite de usuários
+  const plan = await planForOrg(orgId);
+  const userCount = await prisma.membership.count({ where: { orgId } });
+  if (userCount >= plan.users) {
+    return res.status(402).json({ error: "plan_limit_reached", resource: "users", limit: plan.users, note: `Você atingiu o limite de ${plan.users} usuário(s) do seu plano. Faça upgrade para adicionar mais.` });
+  }
 
   const { name, email, password, role } = parsed.data;
 

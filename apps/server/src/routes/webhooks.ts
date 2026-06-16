@@ -4,6 +4,7 @@ import { enqueueEvent } from "../lib/queue";
 import { pushToOrg } from "../lib/push";
 import { aiEnabled, agentReply, scoreLead } from "../lib/ai";
 import { sendChannelMessage } from "../lib/send";
+import { planForOrg } from "./billing";
 import {
   normalizeMetaWebhook,
   resolveOrgIdForMetaWebhook,
@@ -112,9 +113,10 @@ webhooksRouter.post("/webhooks/meta", async (req, res) => {
       url: "/",
     }).catch(() => {});
 
-    // IA: pontuação automática do lead + agente autônomo (se ativados)
+    // IA: pontuação automática do lead + agente autônomo (se ativados e plano permite)
     try {
-      if (aiEnabled()) {
+      const plan = await planForOrg(orgId);
+      if (aiEnabled() && plan.ai) {
         const setting = await prisma.orgSetting.findUnique({ where: { orgId } });
         const history = await prisma.message.findMany({
           where: { orgId, conversationId: conv.id },

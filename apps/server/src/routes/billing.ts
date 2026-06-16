@@ -6,12 +6,18 @@ import { requireAuth, requireRole, AuthedRequest } from "../middleware/auth";
 export const billingRouter = Router();
 billingRouter.use(requireAuth);
 
-export const PLANS: Record<string, { name: string; price: number; users: number; contacts: number; automations: number; broadcast: boolean }> = {
-  trial:    { name: "Teste grátis", price: 0,   users: 3,   contacts: 500,    automations: 5,   broadcast: true },
-  starter:  { name: "Starter",      price: 49,  users: 2,   contacts: 1000,   automations: 5,   broadcast: false },
-  pro:      { name: "Pro",          price: 99,  users: 10,  contacts: 10000,  automations: 50,  broadcast: true },
-  business: { name: "Business",     price: 197, users: 999, contacts: 100000, automations: 999, broadcast: true },
+export const PLANS: Record<string, { name: string; price: number; users: number; contacts: number; automations: number; broadcast: boolean; ai: boolean }> = {
+  trial:    { name: "Teste grátis", price: 0,   users: 3,   contacts: 500,    automations: 5,   broadcast: true,  ai: true },
+  starter:  { name: "Starter",      price: 49,  users: 2,   contacts: 1000,   automations: 5,   broadcast: false, ai: false },
+  pro:      { name: "Pro",          price: 99,  users: 10,  contacts: 10000,  automations: 50,  broadcast: true,  ai: true },
+  business: { name: "Business",     price: 197, users: 999, contacts: 100000, automations: 999, broadcast: true,  ai: true },
 };
+
+/** Retorna o plano (com limites) de uma organização. Usado para travar recursos por plano. */
+export async function planForOrg(orgId: string) {
+  const org = await prisma.organization.findUnique({ where: { id: orgId }, select: { plan: true } });
+  return PLANS[org?.plan ?? "trial"] ?? PLANS.trial;
+}
 
 billingRouter.get("/billing", async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
@@ -35,7 +41,7 @@ billingRouter.get("/billing", async (req: AuthedRequest, res) => {
     price: plan.price,
     trialEndsAt: org.trialEndsAt,
     trialDaysLeft,
-    limits: { users: plan.users, contacts: plan.contacts, automations: plan.automations, broadcast: plan.broadcast },
+    limits: { users: plan.users, contacts: plan.contacts, automations: plan.automations, broadcast: plan.broadcast, ai: plan.ai },
     usage: { users, contacts, automations },
     plans: Object.entries(PLANS)
       .filter(([k]) => k !== "trial")
