@@ -4,6 +4,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
+import { requireAuth, AuthedRequest } from "../middleware/auth";
 
 export const authRouter = Router();
 
@@ -128,5 +129,28 @@ const authHeader = req.headers.authorization;
   } catch (err) {
     return res.status(401).json({ error: "invalid_token" });
   }
+});
+
+// Atualizar o próprio perfil (nome e/ou e-mail de login)
+authRouter.put("/me", requireAuth, async (req: AuthedRequest, res) => {
+  const Body = z.object({ name: z.string().min(2).optional(), email: z.string().email().optional() });
+  const parsed = Body.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body", issues: parsed.error.issues });
+
+  if (parsed.data.email) {
+    const exists = await prisma.user.findFirst({ where: { email: parsed.data.email, NOT: { id: req.user!.userId } } });
+    if (exists) return res.status(409).json({ error: "email_in_use" });
+  }
+
+  const data: { name?: string; email?: string } = {};
+  if (parsed.data.name) data.name = parsed.data.name;
+  if (parsed.data.email) data.email = parsed.data.email;
+
+  const user = await prisma.user.update({
+    where: { id: req.user!.userId },
+    data,
+    select: { id: true, name: true, email: true },
+  });
+  res.json({ ok: true, user });
 });
 
