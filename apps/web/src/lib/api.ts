@@ -1,11 +1,33 @@
 const API = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
+/**
+ * Trata a resposta. Em 402 (limite/recurso de plano), dispara um evento global
+ * "plan-limit" para o app mostrar um aviso amigável de upgrade — sem precisar
+ * tratar isso em cada tela.
+ */
+async function handle(r: Response) {
+  if (!r.ok) {
+    const text = await r.text();
+    if (r.status === 402) {
+      try {
+        const j = JSON.parse(text);
+        if (j?.error === "plan_limit_reached" || j?.error === "plan_upgrade_required") {
+          window.dispatchEvent(new CustomEvent("plan-limit", { detail: j }));
+        }
+      } catch {
+        /* corpo não-JSON: ignora */
+      }
+    }
+    throw new Error(text);
+  }
+  return r.json();
+}
+
 export async function apiGet(path: string, token?: string) {
   const r = await fetch(`${API}${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
+  return handle(r);
 }
 
 export async function apiPost(path: string, body: any, token?: string) {
@@ -17,8 +39,7 @@ export async function apiPost(path: string, body: any, token?: string) {
     },
     body: JSON.stringify(body),
   });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
+  return handle(r);
 }
 
 export async function apiPut(path: string, body: any, token?: string) {
@@ -30,8 +51,7 @@ export async function apiPut(path: string, body: any, token?: string) {
     },
     body: JSON.stringify(body),
   });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
+  return handle(r);
 }
 
 export async function apiDelete(path: string, token?: string) {
@@ -39,8 +59,7 @@ export async function apiDelete(path: string, token?: string) {
     method: "DELETE",
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
+  return handle(r);
 }
 
 export async function apiPatch(path: string, body: any, token?: string) {
@@ -52,6 +71,5 @@ export async function apiPatch(path: string, body: any, token?: string) {
     },
     body: JSON.stringify(body),
   });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
+  return handle(r);
 }

@@ -200,6 +200,13 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
     localStorage.setItem("solutions_dark", dark ? "1" : "0");
   }, [dark]);
 
+  // Aviso amigável de upgrade quando uma ação esbarra num limite/recurso do plano
+  useEffect(() => {
+    const fn = (e: any) => setPlanLimit({ note: e?.detail?.note || "Esse recurso não está incluído no seu plano atual." });
+    window.addEventListener("plan-limit", fn as any);
+    return () => window.removeEventListener("plan-limit", fn as any);
+  }, []);
+
   // Marca white-label (por organização)
   const [brand, setBrand] = useState<{ brandName?: string; brandColor?: string; brandLogoUrl?: string }>({});
   useEffect(() => {
@@ -238,6 +245,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   const [tasks, setTasks] = useState<any[]>([]);
   const [pipelines, setPipelines] = useState<any[]>([]);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
+  const [planLimit, setPlanLimit] = useState<{ note: string } | null>(null);
   const [kpis, setKpis] = useState<any>(null);
   const [automations, setAutomations] = useState<any[]>([]);
   const [series, setSeries] = useState<any[]>([]);
@@ -684,6 +692,25 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
               <Button variant="outline" onClick={() => setLostDealPending(null)}>Cancelar</Button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {planLimit && (
+        <Modal title="Faça upgrade do seu plano" onClose={() => setPlanLimit(null)}>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
+                <Crown className="h-5 w-5" />
+              </div>
+              <p className="text-sm text-slate-600">{planLimit.note}</p>
+            </div>
+            <div className="flex gap-2 pt-1">
+              {isManager && (
+                <Button className="flex-1" onClick={() => { setPlanLimit(null); setView("settings"); }}>Ver planos</Button>
+              )}
+              <Button variant="outline" onClick={() => setPlanLimit(null)}>Fechar</Button>
+            </div>
+          </div>
         </Modal>
       )}
 
