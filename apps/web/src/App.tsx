@@ -4,7 +4,7 @@ import {
   Sparkles, Search, Plus, Send, Clock, CheckCircle2, AlertCircle, Filter,
   Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command,
 } from "lucide-react";
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
 import { clearAuth, getToken, getUser } from "./lib/auth";
 import AuthPage from "./pages/AuthPage";
@@ -542,20 +542,27 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   // ── Analytics chart (dados reais da API) ──────────────────────────────────
   const analyticsSeries = series.length > 0 ? series : [{ day: "", leads: 0, wins: 0 }];
 
-  // Exporta contatos + negócios em CSV
-  function exportCSV() {
-    const rows = [
-      ["tipo", "nome", "empresa", "telefone", "tags", "titulo_negocio", "valor", "etapa", "status"],
-      ...contacts.map((c) => ["contato", c.name, c.company ?? "", c.phone ?? "", (c.tags ?? []).join(";"), "", "", "", ""]),
-      ...deals.map((d) => ["negocio", d.contact?.name ?? "", "", "", "", d.title, String(d.value ?? 0), d.stage?.name ?? "", d.status ?? ""]),
-    ];
-    const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+  // Exportação CSV (abre no Excel) — BOM para acentos corretos
+  function downloadCSV(filename: string, rows: (string | number)[][]) {
+    const csv = rows.map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `solutions-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(a.href);
+  }
+  function exportContacts() {
+    downloadCSV(`solutions-contatos-${new Date().toISOString().slice(0, 10)}.csv`, [
+      ["nome", "empresa", "telefone", "tags", "score_ia", "temperatura"],
+      ...contacts.map((c) => [c.name, c.company ?? "", c.phone ?? "", (c.tags ?? []).join(";"), c.aiScore ?? "", c.aiTemperature ?? ""]),
+    ]);
+  }
+  function exportDeals() {
+    downloadCSV(`solutions-negocios-${new Date().toISOString().slice(0, 10)}.csv`, [
+      ["titulo", "contato", "valor", "etapa", "status"],
+      ...deals.map((d) => [d.title, d.contact?.name ?? "", d.value ?? 0, d.stage?.name ?? "", d.status ?? ""]),
+    ]);
   }
 
   // ── AI copilot ────────────────────────────────────────────────────────────
@@ -1264,11 +1271,19 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
             {view === "campaigns" && <CampaignsView token={token} contacts={contacts} />}
 
             {/* ── ANALYTICS ── */}
-            {view === "analytics" && (
+            {view === "analytics" && (() => {
+              const won = deals.filter((d) => /ganho/i.test(d.stage?.name ?? ""));
+              const wonValue = won.reduce((a, d) => a + (d.value ?? 0), 0);
+              const conv = deals.length ? Math.round((won.length / deals.length) * 100) : 0;
+              const ticket = won.length ? wonValue / won.length : 0;
+              const byStage = Object.entries(
+                deals.reduce((acc: Record<string, number>, d) => { const k = d.stage?.name ?? "(sem etapa)"; acc[k] = (acc[k] || 0) + 1; return acc; }, {})
+              ).map(([etapa, qtd]) => ({ etapa, qtd }));
+              return (
               <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
                 <Card>
                   <CardHeader>
-                    <div className="text-base font-semibold">BI</div>
+                    <div className="text-base font-semibold">BI / Relatórios</div>
                     <div className="text-sm text-slate-500">Dados reais da sua organização</div>
                   </CardHeader>
                   <CardContent>
@@ -1276,9 +1291,13 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                       <KPI title="Leads (total)" value={kpis?.leads ?? contacts.length} hint="Contatos cadastrados" />
                       <KPI title="Negócios abertos" value={kpis?.openDeals ?? deals.filter((d) => d.status === "open").length} hint="No funil ativo" />
                       <KPI title="Pipeline" value={money(kpis?.pipelineValue ?? pipelineValue)} hint="Valor em aberto" />
+                      <KPI title="Ganhos" value={won.length} hint={money(wonValue)} />
+                      <KPI title="Conversão" value={`${conv}%`} hint="Ganhos / total de negócios" />
+                      <KPI title="Ticket médio" value={money(ticket)} hint="Por negócio ganho" />
                     </div>
                     <div className="my-4 h-px bg-slate-200" />
-                    <div className="h-[320px]">
+                    <div className="mb-1 text-sm font-medium text-slate-600">Leads e ganhos na semana</div>
+                    <div className="h-[260px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={analyticsSeries} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" />
@@ -1290,22 +1309,39 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
+                    <div className="my-4 h-px bg-slate-200" />
+                    <div className="mb-1 text-sm font-medium text-slate-600">Negócios por etapa</div>
+                    <div className="h-[240px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={byStage} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="etapa" />
+                          <YAxis allowDecimals={false} />
+                          <Tooltip />
+                          <Bar dataKey="qtd" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Negócios" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader>
-                    <div className="text-base font-semibold">Relatórios rápidos</div>
+                    <div className="text-base font-semibold">Exportar dados</div>
+                    <div className="text-sm text-slate-500">Baixe em CSV (abre no Excel)</div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <Button variant="outline" className="w-full" onClick={exportCSV}>Exportar (CSV)</Button>
+                    <Button variant="outline" className="w-full" onClick={exportContacts}>Exportar contatos (CSV)</Button>
+                    <Button variant="outline" className="w-full" onClick={exportDeals}>Exportar negócios (CSV)</Button>
                     <div className="h-px bg-slate-200" />
                     <MiniStat label="Contatos" value={kpis?.leads ?? contacts.length} />
                     <MiniStat label="Tarefas abertas" value={kpis?.tasksOpen ?? tasks.filter((t) => t.status === "open").length} />
                     <MiniStat label="Negócios" value={deals.length} />
+                    <MiniStat label="Negócios ganhos" value={won.length} />
                   </CardContent>
                 </Card>
               </div>
-            )}
+              );
+            })()}
 
             {/* ── MANAGER ── */}
             {view === "manager" && <ManagerView token={token} hideValues={hideValues} />}
