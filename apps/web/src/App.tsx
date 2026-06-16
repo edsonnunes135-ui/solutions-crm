@@ -9,6 +9,7 @@ import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
 import { clearAuth, getToken, getUser } from "./lib/auth";
 import AuthPage from "./pages/AuthPage";
 import LandingPage from "./pages/LandingPage";
+import TechBackground from "./components/TechBackground";
 import ManagerView from "./pages/ManagerView";
 import SettingsView from "./pages/SettingsView";
 import AutomationsView from "./pages/AutomationsView";
@@ -616,10 +617,9 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   }
 
   return (
-    <div
-      className="app-shell min-h-screen bg-slate-950 bg-cover bg-center bg-fixed"
-      style={{ backgroundImage: "linear-gradient(rgba(2,6,23,0.55), rgba(2,6,23,0.75)), url(/logo.jpeg)" }}
-    >
+    <div className="app-shell relative min-h-screen overflow-x-hidden bg-slate-950">
+      <TechBackground />
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/30 to-slate-950/70" />
       {brand.brandColor && <div style={{ height: 4, background: brand.brandColor }} />}
       {showPalette && (() => {
         const cmds: { label: string; view: View; manager?: boolean }[] = [
@@ -782,7 +782,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
         </Modal>
       )}
 
-      <div className="mx-auto max-w-7xl p-4 md:p-6">
+      <div className="relative z-10 mx-auto max-w-7xl p-4 md:p-6">
         <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
