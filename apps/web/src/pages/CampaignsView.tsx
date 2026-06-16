@@ -14,6 +14,7 @@ interface Props {
 export default function CampaignsView({ token, contacts }: Props) {
   const [text, setText] = useState("");
   const [tag, setTag] = useState("");
+  const [temperature, setTemperature] = useState("");
   const [channel, setChannel] = useState<"whatsapp" | "instagram">("whatsapp");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -28,8 +29,9 @@ export default function CampaignsView({ token, contacts }: Props) {
   const audience = useMemo(() => {
     let list = contacts.filter((c) => !c.conversationDeletedAt);
     if (tag) list = list.filter((c) => (c.tags ?? []).includes(tag));
+    if (temperature) list = list.filter((c) => c.aiTemperature === temperature);
     return list.length;
-  }, [contacts, tag]);
+  }, [contacts, tag, temperature]);
 
   function loadHistory() {
     apiGet("/broadcasts", token).then(setHistory).catch(() => {});
@@ -42,7 +44,7 @@ export default function CampaignsView({ token, contacts }: Props) {
     setSending(true);
     setResult(null);
     try {
-      const r = await apiPost("/broadcasts", { text, tag: tag || undefined, channel }, token);
+      const r = await apiPost("/broadcasts", { text, tag: tag || undefined, temperature: temperature || undefined, channel }, token);
       setResult(r);
       setText("");
       loadHistory();
@@ -67,12 +69,21 @@ export default function CampaignsView({ token, contacts }: Props) {
         </div>
         <div className="p-4 pt-0">
           <form onSubmit={send} className="space-y-3 max-w-2xl">
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-3">
               <div>
                 <label className="mb-1 block text-sm font-medium">Público (tag)</label>
                 <select value={tag} onChange={(e) => setTag(e.target.value)} className="w-full rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200">
                   <option value="">Todos os contatos</option>
                   {allTags.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Temperatura (IA)</label>
+                <select value={temperature} onChange={(e) => setTemperature(e.target.value)} className="w-full rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200">
+                  <option value="">Todas</option>
+                  <option value="quente">🔥 Só quentes</option>
+                  <option value="morno">🟡 Só mornos</option>
+                  <option value="frio">🔵 Só frios</option>
                 </select>
               </div>
               <div>
@@ -85,7 +96,10 @@ export default function CampaignsView({ token, contacts }: Props) {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Mensagem *</label>
-              <textarea required value={text} onChange={(e) => setText(e.target.value)} placeholder="Olá! Temos uma condição especial essa semana…" className="w-full rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200 min-h-[100px]" />
+              <textarea required value={text} onChange={(e) => setText(e.target.value)} placeholder="Oi {primeiro_nome}! {Temos|Preparamos} uma condição especial essa semana…" className="w-full rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200 min-h-[100px]" />
+              <div className="mt-1 text-xs text-slate-500">
+                <strong>Personalize:</strong> use <code className="rounded bg-slate-100 px-1">{"{primeiro_nome}"}</code>, <code className="rounded bg-slate-100 px-1">{"{nome}"}</code> ou <code className="rounded bg-slate-100 px-1">{"{empresa}"}</code>. <strong>Varie o texto</strong> (evita bloqueio) com <code className="rounded bg-slate-100 px-1">{"{Oi|Olá|Bom dia}"}</code> — a IA escolhe uma opção por contato.
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <button type="submit" disabled={sending || !text.trim()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50">

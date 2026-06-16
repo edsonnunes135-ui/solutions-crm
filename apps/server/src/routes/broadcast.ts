@@ -11,8 +11,29 @@ broadcastRouter.use(requireAuth);
 const BroadcastBody = z.object({
   text: z.string().min(1).max(2000),
   tag: z.string().optional(), // sem tag = todos os contatos com conversa ativa
+  temperature: z.enum(["quente", "morno", "frio"]).optional(), // segmentar por score da IA
   channel: z.enum(["whatsapp", "instagram"]).default("whatsapp"),
 });
+
+/**
+ * Personaliza a mensagem por contato:
+ * - Variáveis: {nome}, {primeiro_nome}, {empresa}
+ * - Spintax (variação anti-bloqueio): {Oi|Olá|Bom dia} → escolhe uma opção ao acaso
+ */
+function personalize(text: string, c: { name?: string | null; company?: string | null }): string {
+  // spintax primeiro (qualquer chave que contenha "|")
+  let out = text.replace(/\{([^{}]*\|[^{}]*)\}/g, (_m, grp: string) => {
+    const opts = grp.split("|").map((s) => s.trim()).filter(Boolean);
+    return opts.length ? opts[Math.floor(Math.random() * opts.length)] : "";
+  });
+  const full = (c.name ?? "").trim();
+  const first = full.split(/\s+/)[0] ?? "";
+  out = out
+    .replace(/\{primeiro_nome\}/gi, first)
+    .replace(/\{nome\}/gi, full)
+    .replace(/\{empresa\}/gi, (c.company ?? "").trim());
+  return out;
+}
 
 /**
  * Campanha em massa: envia a mensagem para todos os contatos (filtrados por tag)
@@ -29,13 +50,14 @@ broadcastRouter.post("/broadcasts", requireRole("owner", "partner", "admin"), as
     return res.status(402).json({ error: "plan_upgrade_required", note: "Campanhas em massa disponíveis nos planos Pro e Business." });
   }
 
-  const { text, tag, channel } = parsed.data;
+  const { text, tag, temperature, channel } = parsed.data;
 
   const contacts = await prisma.contact.findMany({
     where: {
       orgId,
       conversationDeletedAt: null,
       ...(tag ? { tags: { some: { tag: { name: tag } } } } : {}),
+      ...(temperature ? { aiTemperature: temperature } : {}),
     },
     include: {
       conversations: {
@@ -55,7 +77,8 @@ broadcastRouter.post("/broadcasts", requireRole("owner", "partner", "admin"), as
   for (const c of contacts) {
     const conv = c.conversations[0];
     if (!conv) { skipped++; continue; }
-    const r = await sendChannelMessage({ orgId, conversationId: conv.id, channel, text });
+    const personalized = personalize(text, c);
+    const r = await sendChannelMessage({ orgId, conversationId: conv.id, channel, text: personalized });
     if (r.sent) sent++;
     else {
       failed++;
@@ -70,7 +93,7 @@ broadcastRouter.post("/broadcasts", requireRole("owner", "partner", "admin"), as
       orgId,
       type: "broadcast_sent",
       processed: true,
-      payload: { text: text.slice(0, 500), tag: tag ?? null, channel, sent, failed, skipped, total: contacts.length },
+      payload: { text: text.slice(0, 500), tag: tag ?? null, temperature: temperature ?? null, channel, sent, failed, skipped, total: contacts.length },
     },
   });
 
