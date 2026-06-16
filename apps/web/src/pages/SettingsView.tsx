@@ -54,6 +54,9 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
   const [tplBusy, setTplBusy] = useState("");
   const [tplMsg, setTplMsg] = useState("");
 
+  // Aba ativa da página de Configurações
+  const [tab, setTab] = useState("plano");
+
   // Marca (white-label)
   const [brandName, setBrandName] = useState("");
   const [brandColor, setBrandColor] = useState("#38bdf8");
@@ -270,9 +273,33 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
     );
   }
 
+  const tabs = [
+    { id: "plano", label: "Plano e cobrança" },
+    { id: "canais", label: "Canais (WhatsApp/Instagram)" },
+    { id: "ia", label: "IA & Notificações" },
+    { id: "marca", label: "Marca" },
+    { id: "equipe", label: "Equipe" },
+    ...(isOwner ? [{ id: "revenda", label: "Revenda / Agência" }] : []),
+    { id: "templates", label: "Templates" },
+  ];
+
   return (
     <div className="space-y-4">
+      {/* Abas de organização */}
+      <div className="flex flex-wrap gap-2">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`rounded-2xl border px-3 py-1.5 text-sm font-medium transition ${tab === t.id ? "border-slate-900 bg-slate-900 text-white" : "hover:bg-slate-50"}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {/* Plano e cobrança */}
+      {tab === "plano" && (
       <Card>
         <div className="p-4 pb-3">
           <div className="flex items-center gap-2 text-base font-semibold">
@@ -329,8 +356,10 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           </div>
         </div>
       </Card>
+      )}
 
       {/* Templates por nicho */}
+      {tab === "templates" && (
       <Card>
         <div className="p-4 pb-3">
           <div className="flex items-center gap-2 text-base font-semibold">
@@ -363,8 +392,10 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           {tplMsg && <div className={`mt-3 text-sm ${tplMsg.startsWith("Erro") ? "text-red-600" : "text-green-600"}`}>{tplMsg}</div>}
         </div>
       </Card>
+      )}
 
       {/* IA & Notificações */}
+      {tab === "ia" && (
       <Card>
         <div className="p-4 pb-3">
           <div className="flex items-center gap-2 text-base font-semibold">
@@ -399,8 +430,10 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           {pushMsg && <div className="text-sm text-slate-600">{pushMsg}</div>}
         </div>
       </Card>
+      )}
 
       {/* Marca (white-label) */}
+      {tab === "marca" && (
       <Card>
         <div className="p-4 pb-3">
           <div className="flex items-center gap-2 text-base font-semibold">
@@ -432,9 +465,10 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           </form>
         </div>
       </Card>
+      )}
 
       {/* Empresas (revenda) */}
-      {isOwner && (
+      {tab === "revenda" && isOwner && (
         <Card>
           <div className="p-4 pb-3">
             <div className="flex items-center gap-2 text-base font-semibold">
@@ -469,6 +503,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
       )}
 
       {/* WhatsApp */}
+      {tab === "canais" && (
       <Card>
         <div className="p-4 pb-3">
           <div className="flex items-center gap-2 text-base font-semibold">
@@ -503,8 +538,10 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           </div>
         </div>
       </Card>
+      )}
 
       {/* Instagram */}
+      {tab === "canais" && (
       <Card>
         <div className="p-4 pb-3">
           <div className="flex items-center gap-2 text-base font-semibold">
@@ -535,8 +572,10 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           </form>
         </div>
       </Card>
+      )}
 
       {/* Equipe */}
+      {tab === "equipe" && (
       <Card>
         <div className="p-4 pb-3">
           <div className="flex items-center gap-2 text-base font-semibold">
@@ -604,6 +643,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           </form>
         </div>
       </Card>
+      )}
     </div>
   );
 }
