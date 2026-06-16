@@ -237,6 +237,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   const [deals, setDeals] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [pipelines, setPipelines] = useState<any[]>([]);
+  const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
   const [kpis, setKpis] = useState<any>(null);
   const [automations, setAutomations] = useState<any[]>([]);
   const [series, setSeries] = useState<any[]>([]);
@@ -247,12 +248,12 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   const reload = useCallback(async () => {
     try {
       const [c, d, t, p, k, a, s, tm, b] = await Promise.all([
-        apiGet("/contacts", token),
-        apiGet("/deals", token),
-        apiGet("/tasks", token),
-        apiGet("/pipelines", token),
-        apiGet("/analytics/kpis", token),
-        apiGet("/automations", token),
+        apiGet("/contacts", token).catch(() => []),
+        apiGet("/deals", token).catch(() => []),
+        apiGet("/tasks", token).catch(() => []),
+        apiGet("/pipelines", token).catch(() => []),
+        apiGet("/analytics/kpis", token).catch(() => null),
+        apiGet("/automations", token).catch(() => []),
         apiGet("/analytics/series", token).catch(() => []),
         apiGet("/team", token).catch(() => []),
         apiGet("/billing", token).catch(() => null),
@@ -261,6 +262,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
       setDeals(d);
       setTasks(t);
       setPipelines(p);
+      setSelectedPipelineId((cur) => cur || p[0]?.id || "");
       setKpis(k);
       setAutomations(a);
       setSeries(s);
@@ -428,7 +430,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   }
 
   // ── Pipeline ──────────────────────────────────────────────────────────────
-  const activePipeline = pipelines[0];
+  const activePipeline = pipelines.find((p: any) => p.id === selectedPipelineId) ?? pipelines[0];
   const stages = activePipeline?.stages ?? [];
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
 
@@ -1087,10 +1089,20 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
             {/* ── PIPELINE ── */}
             {view === "pipeline" && (
               <div>
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4 flex items-center justify-between gap-2">
                   <div>
-                    <h2 className="text-base font-semibold">{activePipeline?.name ?? "Funil"}</h2>
-                    <p className="text-sm text-slate-500">{deals.length} negócios • {money(pipelineValue)} em aberto</p>
+                    {pipelines.length > 1 ? (
+                      <select
+                        value={activePipeline?.id ?? ""}
+                        onChange={(e) => setSelectedPipelineId(e.target.value)}
+                        className="rounded-2xl border px-3 py-1.5 text-base font-semibold outline-none focus:ring-2 focus:ring-slate-200"
+                      >
+                        {pipelines.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                    ) : (
+                      <h2 className="text-base font-semibold">{activePipeline?.name ?? "Funil"}</h2>
+                    )}
+                    <p className="text-sm text-slate-500">{deals.filter((d) => stages.some((s: any) => s.id === d.stageId)).length} negócios neste funil</p>
                   </div>
                   <Button className="gap-2" onClick={() => setShowNewDeal(true)}>
                     <Plus className="h-4 w-4" /> Novo negócio
