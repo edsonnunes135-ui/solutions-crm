@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
 import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { sendWelcomeEmail } from "../lib/email";
 
 export const authRouter = Router();
 
@@ -55,6 +56,9 @@ authRouter.post("/auth/register", async (req, res) => {
       },
     },
   });
+
+  // E-mail de boas-vindas (best-effort — nunca bloqueia o cadastro)
+  sendWelcomeEmail({ to: email, name, orgName }).catch(() => {});
 
   const secret = process.env.JWT_SECRET || "change_me";
   const token = jwt.sign({ userId: user.id, orgId: org.id, role: "owner" }, secret, { expiresIn: "7d" });
