@@ -8,17 +8,19 @@ const API = import.meta.env.VITE_API_URL || "http://localhost:4000";
 async function handle(r: Response) {
   if (!r.ok) {
     const text = await r.text();
-    if (r.status === 402) {
-      try {
-        const j = JSON.parse(text);
-        if (j?.error === "plan_limit_reached" || j?.error === "plan_upgrade_required") {
-          window.dispatchEvent(new CustomEvent("plan-limit", { detail: j }));
-        }
-      } catch {
-        /* corpo não-JSON: ignora */
+    // Extrai o código de erro do corpo JSON (ex.: "bad_credentials") para que as
+    // telas possam mostrar uma mensagem amigável, em vez do JSON cru.
+    let code = text;
+    try {
+      const j = JSON.parse(text);
+      if (j?.error) code = j.error;
+      if (r.status === 402 && (j?.error === "plan_limit_reached" || j?.error === "plan_upgrade_required")) {
+        window.dispatchEvent(new CustomEvent("plan-limit", { detail: j }));
       }
+    } catch {
+      /* corpo não-JSON: usa o texto cru */
     }
-    throw new Error(text);
+    throw new Error(code);
   }
   return r.json();
 }

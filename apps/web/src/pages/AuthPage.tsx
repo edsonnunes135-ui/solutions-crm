@@ -9,6 +9,19 @@ interface Props {
   initialMode?: "login" | "register";
 }
 
+/** Traduz o código de erro da API numa mensagem amigável (nunca mostra JSON cru). */
+function friendlyError(code: string): string {
+  const map: Record<string, string> = {
+    bad_credentials: "E-mail ou senha incorretos",
+    email_in_use: "Este e-mail já está cadastrado",
+    no_org: "Sua conta não está vinculada a nenhuma empresa",
+    invalid_body: "Confira os dados e tente novamente",
+    missing_token: "Sessão expirada. Entre novamente",
+    invalid_token: "Sessão expirada. Entre novamente",
+  };
+  return map[code] || "Não foi possível entrar. Tente novamente";
+}
+
 export default function AuthPage({ onAuth, onBack, initialMode = "login" }: Props) {
   const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [loading, setLoading] = useState(false);
@@ -120,7 +133,7 @@ export default function AuthPage({ onAuth, onBack, initialMode = "login" }: Prop
 
           {error && (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error === "bad_credentials" ? "E-mail ou senha incorretos" : error === "email_in_use" ? "E-mail já cadastrado" : error}
+              {friendlyError(error)}
             </div>
           )}
 
