@@ -76,7 +76,7 @@ function welcomeHtml(params: { name: string; orgName?: string }) {
         </td></tr>
 
         <tr><td style="background:#06101f;padding:20px 36px;border-top:1px solid #16233c;">
-          <div style="font-size:12px;color:#64748b;">Solutions CRM · A tecnologia que impulsiona o seu futuro.</div>
+          <div style="font-size:12px;color:#64748b;">Solutions CRM — A tecnologia que impulsiona o seu futuro.</div>
           <div style="font-size:12px;color:#475569;margin-top:4px;">
             <a href="${APP_URL}" style="color:#38bdf8;text-decoration:none;">solutionscrm.com.br</a>
           </div>
