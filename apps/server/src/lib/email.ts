@@ -27,7 +27,7 @@ function welcomeHtml(params: { name: string; orgName?: string }) {
 
         <tr><td style="background:linear-gradient(135deg,#0a1d44 0%,#0d2347 45%,#06101f 100%);padding:36px 36px 28px;">
           <table role="presentation" width="100%"><tr>
-            <td style="font-size:22px;font-weight:700;color:#ffffff;letter-spacing:.5px;">Solutions <span style="color:#38bdf8;">CRM</span></td>
+            <td style="font-size:22px;font-weight:700;color:#ffffff;letter-spacing:.5px;"><img src="${APP_URL}/logo.jpeg" width="40" height="40" alt="Solutions" style="border-radius:11px;vertical-align:middle;margin-right:12px;">Solutions <span style="color:#38bdf8;">CRM</span></td>
             <td align="right" style="font-size:11px;color:#7dd3fc;letter-spacing:2px;text-transform:uppercase;">Inteligência Artificial</td>
           </tr></table>
           <div style="margin-top:26px;font-size:32px;line-height:1.2;font-weight:800;color:#ffffff;">
@@ -76,7 +76,7 @@ function welcomeHtml(params: { name: string; orgName?: string }) {
         </td></tr>
 
         <tr><td style="background:#06101f;padding:20px 36px;border-top:1px solid #16233c;">
-          <div style="font-size:12px;color:#64748b;">Solutions CRM — A tecnologia que impulsiona o seu futuro.</div>
+          <div style="font-size:12px;color:#64748b;">Solutions CRM · A tecnologia que impulsiona o seu futuro.</div>
           <div style="font-size:12px;color:#475569;margin-top:4px;">
             <a href="${APP_URL}" style="color:#38bdf8;text-decoration:none;">solutionscrm.com.br</a>
           </div>
