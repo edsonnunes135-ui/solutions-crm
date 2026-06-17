@@ -102,7 +102,7 @@ settingsRouter.get("/branding", async (req: AuthedRequest, res) => {
 
 // ── Equipe (gestão de acessos) ───────────────────────────────────────────────
 
-settingsRouter.get("/team", async (req: AuthedRequest, res) => {
+settingsRouter.get("/team", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const members = await prisma.membership.findMany({
     where: { orgId },

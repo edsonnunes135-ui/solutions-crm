@@ -16,6 +16,18 @@ import { PLANS } from "./billing";
 export const adminRouter = Router();
 adminRouter.use(requireAuth);
 
+// Empresas escondidas do faturamento (contas de teste). Configurável por env.
+function normalizeName(s?: string | null) {
+  return (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+}
+const HIDDEN_ORG_NAMES = (process.env.METRICS_HIDDEN_ORGS || "dacolonia,velour")
+  .split(",")
+  .map((s) => normalizeName(s))
+  .filter(Boolean);
+function isHiddenOrg(...names: (string | null | undefined)[]) {
+  return names.some((n) => HIDDEN_ORG_NAMES.includes(normalizeName(n)));
+}
+
 // Qualquer logado pode perguntar SE é CEO (a UI usa isso pra mostrar/ocultar a aba)
 adminRouter.get("/admin/status", async (req: AuthedRequest, res) => {
   const user = await prisma.user.findUnique({
@@ -23,6 +35,29 @@ adminRouter.get("/admin/status", async (req: AuthedRequest, res) => {
     select: { email: true },
   });
   res.json({ isPlatformAdmin: isPlatformAdminEmail(user?.email) });
+});
+
+// Acessos — todas as pessoas que criaram conta na Solutions (só o CEO)
+adminRouter.get("/admin/users", requirePlatformAdmin, async (_req, res) => {
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      createdAt: true,
+      memberships: { select: { role: true, org: { select: { name: true } } } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(
+    users.map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      createdAt: u.createdAt,
+      companies: u.memberships.map((m) => ({ org: m.org.name, role: m.role })),
+    }))
+  );
 });
 
 // Faturamento da Solutions — só o CEO
@@ -51,36 +86,41 @@ adminRouter.get("/admin/metrics", requirePlatformAdmin, async (_req, res) => {
   let totalUsers = 0;
   let clientCompanies = 0;
 
-  const companies = orgs.map((o) => {
-    const plan = PLANS[o.plan] ?? PLANS.trial;
-    const seats = Math.max(1, o._count.users);
-    const monthly = o.plan === "trial" ? 0 : plan.price * seats;
-    // Empresa "interna" = pertence ao próprio CEO. Não conta como receita/cliente.
-    const internal = isPlatformAdminEmail(o.users[0]?.user?.email);
+  const companies = orgs
+    .map((o) => {
+      // Empresas escondidas (contas de teste) saem do faturamento por completo.
+      if (isHiddenOrg(o.name, o.setting?.brandName)) return null;
 
-    if (!internal) {
-      clientCompanies += 1;
-      planCounts[o.plan] = (planCounts[o.plan] ?? 0) + 1;
-      totalUsers += o._count.users;
-      if (o.plan !== "trial") {
-        mrr += monthly;
-        activeSubscriptions += 1;
+      const plan = PLANS[o.plan] ?? PLANS.trial;
+      const seats = Math.max(1, o._count.users);
+      const monthly = o.plan === "trial" ? 0 : plan.price * seats;
+      // Empresa "interna" = pertence ao próprio CEO. Não conta como receita/cliente.
+      const internal = isPlatformAdminEmail(o.users[0]?.user?.email);
+
+      if (!internal) {
+        clientCompanies += 1;
+        planCounts[o.plan] = (planCounts[o.plan] ?? 0) + 1;
+        totalUsers += o._count.users;
+        if (o.plan !== "trial") {
+          mrr += monthly;
+          activeSubscriptions += 1;
+        }
+        if (o.createdAt >= monthStart) newThisMonth += 1;
       }
-      if (o.createdAt >= monthStart) newThisMonth += 1;
-    }
 
-    return {
-      id: o.id,
-      name: o.setting?.brandName || o.name,
-      plan: o.plan,
-      planName: plan.name,
-      seats: o._count.users,
-      monthly,
-      internal,
-      createdAt: o.createdAt,
-      trialEndsAt: o.trialEndsAt,
-    };
-  });
+      return {
+        id: o.id,
+        name: o.setting?.brandName || o.name,
+        plan: o.plan,
+        planName: plan.name,
+        seats: o._count.users,
+        monthly,
+        internal,
+        createdAt: o.createdAt,
+        trialEndsAt: o.trialEndsAt,
+      };
+    })
+    .filter((c): c is NonNullable<typeof c> => c !== null);
 
   res.json({
     mrr,

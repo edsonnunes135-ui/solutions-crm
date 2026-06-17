@@ -4,7 +4,7 @@ import {
   Sparkles, Search, Plus, Send, Clock, CheckCircle2, AlertCircle, Filter,
   Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command,
 } from "lucide-react";
-import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
 import { clearAuth, getToken, getUser, impersonatingName, exitImpersonation } from "./lib/auth";
 import AuthPage from "./pages/AuthPage";
@@ -17,8 +17,10 @@ import CampaignsView from "./pages/CampaignsView";
 import CopilotView from "./pages/CopilotView";
 import HomeView from "./pages/HomeView";
 import FaturamentoSolutions from "./pages/FaturamentoSolutions";
+import AcessosView from "./pages/AcessosView";
+import TemplatesView from "./pages/TemplatesView";
 
-type View = "home" | "inbox" | "pipeline" | "contacts" | "automations" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions";
+type View = "home" | "inbox" | "pipeline" | "contacts" | "automations" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions" | "acessos" | "templates";
 
 // ── UI primitives ────────────────────────────────────────────────────────────
 
@@ -568,27 +570,56 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   // ── Analytics chart (dados reais da API) ──────────────────────────────────
   const analyticsSeries = series.length > 0 ? series : [{ day: "", leads: 0, wins: 0 }];
 
-  // Exportação CSV (abre no Excel) — BOM para acentos corretos
-  function downloadCSV(filename: string, rows: (string | number)[][]) {
-    const csv = rows.map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+  // Exportação CSV profissional: separador ";" (padrão do Excel no Brasil, abre
+  // cada dado na sua coluna), BOM para acentos corretos, cabeçalhos claros.
+  function downloadCSV(filename: string, headers: string[], rows: (string | number)[][]) {
+    const esc = (v: string | number) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const body = [headers, ...rows].map((r) => r.map(esc).join(";")).join("\r\n");
+    const blob = new Blob(["﻿" + body], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = filename;
     a.click();
     URL.revokeObjectURL(a.href);
   }
+  const ptDate = (v: any) => (v ? new Date(v).toLocaleDateString("pt-BR") : "");
+  const cap = (s?: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "");
+  const channelLabel: Record<string, string> = { whatsapp: "WhatsApp", instagram: "Instagram" };
+  const statusLabel: Record<string, string> = { open: "Aberto", won: "Ganho", lost: "Perdido" };
+
   function exportContacts() {
-    downloadCSV(`solutions-contatos-${new Date().toISOString().slice(0, 10)}.csv`, [
-      ["nome", "empresa", "telefone", "tags", "score_ia", "temperatura"],
-      ...contacts.map((c) => [c.name, c.company ?? "", c.phone ?? "", (c.tags ?? []).join(";"), c.aiScore ?? "", c.aiTemperature ?? ""]),
-    ]);
+    downloadCSV(
+      `solutions-contatos-${new Date().toISOString().slice(0, 10)}.csv`,
+      ["Nome do cliente", "Empresa", "Telefone", "E-mail", "Canal", "Tags", "Score IA (0-100)", "Temperatura", "Cadastrado em"],
+      contacts.map((c) => [
+        c.name ?? "",
+        c.company ?? "",
+        c.phone ?? "",
+        c.email ?? "",
+        channelLabel[c.conversation?.channel] ?? c.conversation?.channel ?? "",
+        (c.tags ?? []).join(" | "),
+        c.aiScore ?? "",
+        cap(c.aiTemperature),
+        ptDate(c.createdAt),
+      ])
+    );
   }
   function exportDeals() {
-    downloadCSV(`solutions-negocios-${new Date().toISOString().slice(0, 10)}.csv`, [
-      ["titulo", "contato", "valor", "etapa", "status"],
-      ...deals.map((d) => [d.title, d.contact?.name ?? "", d.value ?? 0, d.stage?.name ?? "", d.status ?? ""]),
-    ]);
+    downloadCSV(
+      `solutions-negocios-${new Date().toISOString().slice(0, 10)}.csv`,
+      ["Título do negócio", "Cliente", "Empresa", "Valor (R$)", "Funil", "Etapa", "Status", "Motivo da perda", "Criado em"],
+      deals.map((d) => [
+        d.title ?? "",
+        d.contact?.name ?? "",
+        d.contact?.company ?? "",
+        d.value ?? 0,
+        d.pipeline?.name ?? "",
+        d.stage?.name ?? "",
+        statusLabel[d.status] ?? d.status ?? "",
+        d.lostReason ?? "",
+        ptDate(d.createdAt),
+      ])
+    );
   }
 
   // ── AI copilot ────────────────────────────────────────────────────────────
@@ -670,8 +701,10 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
           { label: "Copiloto de IA", view: "ai" },
           { label: "Gestão", view: "manager", manager: true },
           { label: "Campanhas", view: "campaigns", manager: true },
+          { label: "Templates de funil", view: "templates", manager: true },
           { label: "Configurações", view: "settings", manager: true },
           { label: "Faturamento Solutions", view: "solutions", ceo: true },
+          { label: "Acessos", view: "acessos", ceo: true },
         ];
         const list = cmds.filter((c) => (!c.manager || isManager) && (!c.ceo || isCeo) && c.label.toLowerCase().includes(paletteQ.toLowerCase()));
         return (
@@ -895,6 +928,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
               <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Vendas</div>
               <NavItem icon={<KanbanSquare className="h-4 w-4" />} active={view === "pipeline"} onClick={() => setView("pipeline")} label="Funil" />
               {isManager && <NavItem icon={<Megaphone className="h-4 w-4 text-orange-500" />} active={view === "campaigns"} onClick={() => setView("campaigns")} label="Campanhas" />}
+              {isManager && <NavItem icon={<Sparkles className="h-4 w-4 text-sky-500" />} active={view === "templates"} onClick={() => setView("templates")} label="Templates" />}
 
               <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Inteligência</div>
               <NavItem icon={<Sparkles className="h-4 w-4" />} active={view === "ai"} onClick={() => setView("ai")} label="Copiloto IA" />
@@ -913,6 +947,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                 <>
                   <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-purple-400">Plataforma</div>
                   <NavItem icon={<Building2 className="h-4 w-4 text-purple-500" />} active={view === "solutions"} onClick={() => setView("solutions")} label="Faturamento Solutions" />
+                  <NavItem icon={<Users className="h-4 w-4 text-purple-500" />} active={view === "acessos"} onClick={() => setView("acessos")} label="Acessos" />
                 </>
               )}
 
@@ -1352,6 +1387,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
               const byStage = Object.entries(
                 deals.reduce((acc: Record<string, number>, d) => { const k = d.stage?.name ?? "(sem etapa)"; acc[k] = (acc[k] || 0) + 1; return acc; }, {})
               ).map(([etapa, qtd]) => ({ etapa, qtd }));
+              const chartTooltip = { borderRadius: 12, border: "1px solid #e2e8f0", boxShadow: "0 6px 20px rgba(15,23,42,0.1)", fontSize: 12, padding: "8px 12px" } as const;
               return (
               <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
                 <Card>
@@ -1369,29 +1405,46 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                       <KPI title="Ticket médio" value={money(ticket)} hint="Por negócio ganho" />
                     </div>
                     <div className="my-4 h-px bg-slate-200" />
-                    <div className="mb-1 text-sm font-medium text-slate-600">Leads e ganhos na semana</div>
+                    <div className="mb-2 text-sm font-medium text-slate-700">Leads e ganhos na semana</div>
                     <div className="h-[260px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={analyticsSeries} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="day" />
-                          <YAxis />
-                          <Tooltip />
-                          <Line type="monotone" dataKey="leads" strokeWidth={2} dot={false} name="Leads" />
-                          <Line type="monotone" dataKey="wins" strokeWidth={2} dot={false} stroke="#22c55e" name="Ganhos" />
-                        </LineChart>
+                        <AreaChart data={analyticsSeries} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="gLeads" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.32} />
+                              <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="gWins" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#22c55e" stopOpacity={0.32} />
+                              <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid vertical={false} stroke="#eef2f7" />
+                          <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "#94a3b8" }} dy={6} />
+                          <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} tick={{ fontSize: 12, fill: "#94a3b8" }} />
+                          <Tooltip contentStyle={chartTooltip} cursor={{ stroke: "#cbd5e1", strokeWidth: 1 }} />
+                          <Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12, paddingTop: 6 }} />
+                          <Area type="monotone" dataKey="leads" name="Leads" stroke="#3b82f6" strokeWidth={2.5} fill="url(#gLeads)" dot={false} activeDot={{ r: 4 }} />
+                          <Area type="monotone" dataKey="wins" name="Ganhos" stroke="#22c55e" strokeWidth={2.5} fill="url(#gWins)" dot={false} activeDot={{ r: 4 }} />
+                        </AreaChart>
                       </ResponsiveContainer>
                     </div>
                     <div className="my-4 h-px bg-slate-200" />
-                    <div className="mb-1 text-sm font-medium text-slate-600">Negócios por etapa</div>
+                    <div className="mb-2 text-sm font-medium text-slate-700">Negócios por etapa</div>
                     <div className="h-[240px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={byStage} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="etapa" />
-                          <YAxis allowDecimals={false} />
-                          <Tooltip />
-                          <Bar dataKey="qtd" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Negócios" />
+                        <BarChart data={byStage} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="gBar" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#6366f1" />
+                              <stop offset="100%" stopColor="#3b82f6" />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid vertical={false} stroke="#eef2f7" />
+                          <XAxis dataKey="etapa" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#94a3b8" }} interval={0} dy={6} />
+                          <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} tick={{ fontSize: 12, fill: "#94a3b8" }} />
+                          <Tooltip contentStyle={chartTooltip} cursor={{ fill: "#f1f5f9" }} />
+                          <Bar dataKey="qtd" name="Negócios" fill="url(#gBar)" radius={[6, 6, 0, 0]} maxBarSize={52} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -1421,6 +1474,10 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
             {/* ── PLATAFORMA (CEO) ── */}
             {view === "solutions" && isCeo && <FaturamentoSolutions token={token} />}
+            {view === "acessos" && isCeo && <AcessosView token={token} />}
+
+            {/* ── TEMPLATES (Vendas) ── */}
+            {view === "templates" && isManager && <TemplatesView token={token} />}
 
             {/* ── SETTINGS ── */}
             {view === "settings" && <SettingsView token={token} isManager={isManager} />}
