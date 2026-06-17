@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
-import { clearAuth, getToken, getUser } from "./lib/auth";
+import { clearAuth, getToken, getUser, impersonatingName, exitImpersonation } from "./lib/auth";
 import AuthPage from "./pages/AuthPage";
 import LandingPage from "./pages/LandingPage";
 import TechBackground from "./components/TechBackground";
@@ -189,6 +189,14 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
       .then((r) => setIsCeo(!!r?.isPlatformAdmin))
       .catch(() => setIsCeo(false));
   }, [token]);
+
+  // Aviso global da plataforma (o CEO dispara, todos veem) + modo suporte
+  const [notice, setNotice] = useState<{ id: string; message: string; level: string } | null>(null);
+  const [noticeHidden, setNoticeHidden] = useState(false);
+  useEffect(() => {
+    apiGet("/notices/active", token).then(setNotice).catch(() => setNotice(null));
+  }, [token]);
+  const impName = impersonatingName();
 
   const [view, setView] = useState<View>("home");
   const [q, setQ] = useState("");
@@ -630,6 +638,27 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
       <TechBackground />
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/30 to-slate-950/70" />
       {brand.brandColor && <div style={{ height: 4, background: brand.brandColor }} />}
+
+      {impName && (
+        <div className="relative z-20 flex items-center justify-center gap-3 bg-purple-700 px-4 py-2 text-center text-sm font-medium text-white">
+          <span>🚪 Modo suporte — você está dentro da empresa <strong>{impName}</strong></span>
+          <button
+            onClick={() => { exitImpersonation(); window.location.reload(); }}
+            className="rounded-lg bg-white/20 px-3 py-1 text-xs font-semibold hover:bg-white/30"
+          >
+            Sair do modo suporte
+          </button>
+        </div>
+      )}
+      {notice && !noticeHidden && (
+        <div className={`relative z-20 flex items-center justify-center gap-3 px-4 py-2 text-center text-sm ${notice.level === "warning" ? "bg-amber-500 text-amber-950" : "bg-sky-600 text-white"}`}>
+          <span>📢 {notice.message}</span>
+          <button onClick={() => setNoticeHidden(true)} className="rounded p-0.5 hover:bg-black/10" aria-label="Fechar aviso">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {showPalette && (() => {
         const cmds: { label: string; view: View; manager?: boolean; ceo?: boolean }[] = [
           { label: "Início", view: "home" },

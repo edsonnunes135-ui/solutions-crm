@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { requireAuth, requireRole, AuthedRequest } from "../middleware/auth";
+import { requirePlatformAdmin } from "../lib/platformAdmin";
 
 export const billingRouter = Router();
 billingRouter.use(requireAuth);
@@ -102,10 +103,11 @@ billingRouter.post("/billing/checkout", requireRole("owner", "partner"), async (
 });
 
 /**
- * Troca de plano manual (CEO/Sócio) — usado como fallback e pelo webhook
- * de pagamento confirmado do Mercado Pago.
+ * Ativação de plano SEM pagamento — exclusiva do CEO da plataforma.
+ * O gestor comum NÃO usa isto: ele assina pagando via /billing/checkout
+ * (Mercado Pago). Assim, "ativar plano de graça" é poder só do CEO.
  */
-billingRouter.put("/billing/plan", requireRole("owner", "partner"), async (req: AuthedRequest, res) => {
+billingRouter.put("/billing/plan", requirePlatformAdmin, async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
   const parsed = PlanBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body" });

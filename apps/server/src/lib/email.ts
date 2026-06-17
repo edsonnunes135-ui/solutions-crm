@@ -109,4 +109,61 @@ export async function sendWelcomeEmail(params: { to: string; name: string; orgNa
   }
 }
 
+/** Template do e-mail de recuperação de senha (código grande e destacado). */
+function resetHtml(params: { name: string; code: string }) {
+  const first = firstName(params.name) || "";
+  return `<!doctype html>
+<html lang="pt-br"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#05070f;font-family:'Segoe UI',Roboto,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#05070f;padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#0b1220;border:1px solid #1e293b;border-radius:18px;overflow:hidden;">
+        <tr><td style="background:linear-gradient(135deg,#0a1d44 0%,#0d2347 45%,#06101f 100%);padding:30px 36px 24px;">
+          <div style="font-size:20px;font-weight:700;color:#ffffff;"><img src="${APP_URL}/logo.jpeg" width="36" height="36" alt="Solutions" style="border-radius:10px;vertical-align:middle;margin-right:10px;">Solutions <span style="color:#38bdf8;">CRM</span></div>
+        </td></tr>
+        <tr><td style="padding:30px 36px 8px;">
+          <div style="font-size:22px;font-weight:800;color:#ffffff;">Recuperação de senha</div>
+          <div style="margin-top:10px;font-size:15px;color:#cbd5e1;line-height:1.6;">
+            ${first ? `Olá, ${first}. ` : ""}Use o código abaixo para redefinir a sua senha. Ele vale por <strong style="color:#fff;">30 minutos</strong>.
+          </div>
+        </td></tr>
+        <tr><td align="center" style="padding:22px 36px 8px;">
+          <div style="display:inline-block;background:#06101f;border:1px solid #1e293b;border-radius:14px;padding:16px 30px;font-size:34px;font-weight:800;letter-spacing:10px;color:#38bdf8;">${params.code}</div>
+        </td></tr>
+        <tr><td style="padding:18px 36px 28px;">
+          <div style="font-size:13px;color:#8aa0bd;line-height:1.6;">
+            Digite esse código na tela de login, na opção "Esqueci a senha", e escolha uma nova senha.
+            Se você não pediu isso, pode ignorar este e-mail — sua senha continua a mesma.
+          </div>
+        </td></tr>
+        <tr><td style="background:#06101f;padding:18px 36px;border-top:1px solid #16233c;">
+          <div style="font-size:12px;color:#64748b;">Solutions CRM — A tecnologia que impulsiona o seu futuro.</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+/** Envia o e-mail com o código de recuperação (best-effort). */
+export async function sendPasswordResetEmail(params: { to: string; name: string; code: string }) {
+  if (!RESEND_KEY) return { sent: false, note: "email_not_configured" };
+  try {
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: EMAIL_FROM,
+        to: [params.to],
+        subject: `Seu código de recuperação: ${params.code}`,
+        html: resetHtml(params),
+      }),
+    });
+    const data: any = await r.json();
+    return { sent: r.ok, status: r.status, data };
+  } catch (err: any) {
+    return { sent: false, error: String(err?.message ?? err) };
+  }
+}
+
 export { welcomeHtml };

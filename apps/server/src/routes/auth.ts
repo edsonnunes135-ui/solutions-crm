@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
 import { requireAuth, AuthedRequest } from "../middleware/auth";
-import { sendWelcomeEmail } from "../lib/email";
+import { sendWelcomeEmail, sendPasswordResetEmail } from "../lib/email";
 
 export const authRouter = Router();
 
@@ -95,6 +95,52 @@ authRouter.post("/auth/login", async (req, res) => {
     user: { id: user.id, name: user.name, email: user.email },
   });
 });
+// ── Recuperação de senha ("Esqueci a senha") ─────────────────────────────────
+const ForgotSchema = z.object({ email: z.string().email() });
+authRouter.post("/auth/forgot-password", async (req, res) => {
+  const parsed = ForgotSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+
+  const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+  // Sempre responde ok — não revela se o e-mail existe (evita descobrir contas)
+  if (user) {
+    const code = String(Math.floor(100000 + Math.random() * 900000)); // 6 dígitos
+    const expires = new Date(Date.now() + 30 * 60 * 1000); // 30 minutos
+    await prisma.user.update({ where: { id: user.id }, data: { resetCode: code, resetCodeExpiresAt: expires } });
+    sendPasswordResetEmail({ to: user.email, name: user.name, code }).catch(() => {});
+  }
+  res.json({ ok: true });
+});
+
+const ResetSchema = z.object({
+  email: z.string().email(),
+  code: z.string().min(4),
+  password: z
+    .string()
+    .min(8, "minimo 8 caracteres")
+    .regex(/[a-zA-Z]/, "precisa de letra")
+    .regex(/[0-9]/, "precisa de numero"),
+});
+authRouter.post("/auth/reset-password", async (req, res) => {
+  const parsed = ResetSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body", issues: parsed.error.issues });
+  const { email, code, password } = parsed.data;
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || !user.resetCode || !user.resetCodeExpiresAt || user.resetCode !== code) {
+    return res.status(400).json({ error: "invalid_code" });
+  }
+  if (user.resetCodeExpiresAt.getTime() < Date.now()) {
+    return res.status(400).json({ error: "code_expired" });
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { password: await bcrypt.hash(password, 10), resetCode: null, resetCodeExpiresAt: null },
+  });
+  res.json({ ok: true });
+});
+
 authRouter.get("/me", ensureAuth, async (req, res) => {
 const authHeader = req.headers.authorization;
 

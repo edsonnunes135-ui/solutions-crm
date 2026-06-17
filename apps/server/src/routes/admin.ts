@@ -7,6 +7,7 @@
  */
 import { Router } from "express";
 import { z } from "zod";
+import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
 import { requireAuth, AuthedRequest } from "../middleware/auth";
 import { isPlatformAdminEmail, requirePlatformAdmin } from "../lib/platformAdmin";
@@ -35,6 +36,8 @@ adminRouter.get("/admin/metrics", requirePlatformAdmin, async (_req, res) => {
       trialEndsAt: true,
       _count: { select: { users: true } },
       setting: { select: { brandName: true } },
+      // dono da empresa — usado para detectar a(s) conta(s) interna(s) do CEO
+      users: { where: { role: "owner" }, take: 1, select: { user: { select: { email: true } } } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -46,18 +49,26 @@ adminRouter.get("/admin/metrics", requirePlatformAdmin, async (_req, res) => {
   let activeSubscriptions = 0;
   let newThisMonth = 0;
   let totalUsers = 0;
+  let clientCompanies = 0;
 
   const companies = orgs.map((o) => {
     const plan = PLANS[o.plan] ?? PLANS.trial;
     const seats = Math.max(1, o._count.users);
     const monthly = o.plan === "trial" ? 0 : plan.price * seats;
-    planCounts[o.plan] = (planCounts[o.plan] ?? 0) + 1;
-    totalUsers += o._count.users;
-    if (o.plan !== "trial") {
-      mrr += monthly;
-      activeSubscriptions += 1;
+    // Empresa "interna" = pertence ao próprio CEO. Não conta como receita/cliente.
+    const internal = isPlatformAdminEmail(o.users[0]?.user?.email);
+
+    if (!internal) {
+      clientCompanies += 1;
+      planCounts[o.plan] = (planCounts[o.plan] ?? 0) + 1;
+      totalUsers += o._count.users;
+      if (o.plan !== "trial") {
+        mrr += monthly;
+        activeSubscriptions += 1;
+      }
+      if (o.createdAt >= monthStart) newThisMonth += 1;
     }
-    if (o.createdAt >= monthStart) newThisMonth += 1;
+
     return {
       id: o.id,
       name: o.setting?.brandName || o.name,
@@ -65,6 +76,7 @@ adminRouter.get("/admin/metrics", requirePlatformAdmin, async (_req, res) => {
       planName: plan.name,
       seats: o._count.users,
       monthly,
+      internal,
       createdAt: o.createdAt,
       trialEndsAt: o.trialEndsAt,
     };
@@ -73,7 +85,7 @@ adminRouter.get("/admin/metrics", requirePlatformAdmin, async (_req, res) => {
   res.json({
     mrr,
     arr: mrr * 12,
-    totalCompanies: orgs.length,
+    totalCompanies: clientCompanies, // só clientes (exclui a conta interna do CEO)
     activeSubscriptions,
     trialCount: planCounts.trial,
     newThisMonth,
@@ -94,4 +106,50 @@ adminRouter.put("/admin/orgs/:orgId/plan", requirePlatformAdmin, async (req: Aut
     data: { plan: parsed.data.plan, ...(parsed.data.plan === "trial" ? { trialEndsAt: null } : {}) },
   });
   res.json({ ok: true, orgId: org.id, plan: org.plan });
+});
+
+// CEO "entra" em qualquer empresa para dar suporte — sem precisar da senha do cliente.
+// Emite um token apontando para a empresa-alvo (papel owner). É assim que o CEO
+// mantém acesso total mesmo depois que o cliente troca a própria senha.
+const ImpersonateBody = z.object({ orgId: z.string().min(1) });
+adminRouter.post("/admin/impersonate", requirePlatformAdmin, async (req: AuthedRequest, res) => {
+  const parsed = ImpersonateBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+
+  const org = await prisma.organization.findUnique({
+    where: { id: parsed.data.orgId },
+    select: { id: true, name: true, setting: { select: { brandName: true } } },
+  });
+  if (!org) return res.status(404).json({ error: "org_not_found" });
+
+  const secret = process.env.JWT_SECRET || "change_me";
+  const token = jwt.sign({ userId: req.user!.userId, orgId: org.id, role: "owner" }, secret, { expiresIn: "1d" });
+  res.json({ token, orgId: org.id, role: "owner", orgName: org.setting?.brandName || org.name });
+});
+
+// ── Aviso global da plataforma (CEO dispara, todos veem) ─────────────────────
+// Qualquer usuário logado lê o aviso ativo mais recente (a UI mostra como banner).
+adminRouter.get("/notices/active", async (_req, res) => {
+  const notice = await prisma.platformNotice.findFirst({
+    where: { active: true },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(notice ? { id: notice.id, message: notice.message, level: notice.level, createdAt: notice.createdAt } : null);
+});
+
+const NoticeBody = z.object({ message: z.string().min(2).max(280), level: z.enum(["info", "warning"]).optional() });
+adminRouter.post("/admin/notices", requirePlatformAdmin, async (req, res) => {
+  const parsed = NoticeBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+  // só um aviso ativo por vez: desativa os anteriores
+  await prisma.platformNotice.updateMany({ where: { active: true }, data: { active: false } });
+  const notice = await prisma.platformNotice.create({
+    data: { message: parsed.data.message, level: parsed.data.level ?? "info" },
+  });
+  res.json({ ok: true, notice });
+});
+
+adminRouter.delete("/admin/notices", requirePlatformAdmin, async (_req, res) => {
+  await prisma.platformNotice.updateMany({ where: { active: true }, data: { active: false } });
+  res.json({ ok: true });
 });
