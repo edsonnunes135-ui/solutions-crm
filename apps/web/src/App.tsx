@@ -16,8 +16,9 @@ import AutomationsView from "./pages/AutomationsView";
 import CampaignsView from "./pages/CampaignsView";
 import CopilotView from "./pages/CopilotView";
 import HomeView from "./pages/HomeView";
+import FaturamentoSolutions from "./pages/FaturamentoSolutions";
 
-type View = "home" | "inbox" | "pipeline" | "contacts" | "automations" | "analytics" | "ai" | "manager" | "settings" | "campaigns";
+type View = "home" | "inbox" | "pipeline" | "contacts" | "automations" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions";
 
 // ── UI primitives ────────────────────────────────────────────────────────────
 
@@ -180,6 +181,14 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   const token = getToken()!;
   const user = getUser();
   const isManager = user?.role === "owner" || user?.role === "partner" || user?.role === "admin";
+
+  // CEO da plataforma (só o dono) — define pelo backend, não dá pra forjar pela UI
+  const [isCeo, setIsCeo] = useState(false);
+  useEffect(() => {
+    apiGet("/admin/status", token)
+      .then((r) => setIsCeo(!!r?.isPlatformAdmin))
+      .catch(() => setIsCeo(false));
+  }, [token]);
 
   const [view, setView] = useState<View>("home");
   const [q, setQ] = useState("");
@@ -622,7 +631,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/30 to-slate-950/70" />
       {brand.brandColor && <div style={{ height: 4, background: brand.brandColor }} />}
       {showPalette && (() => {
-        const cmds: { label: string; view: View; manager?: boolean }[] = [
+        const cmds: { label: string; view: View; manager?: boolean; ceo?: boolean }[] = [
           { label: "Início", view: "home" },
           { label: "Inbox / Conversas", view: "inbox" },
           { label: "Funil de vendas", view: "pipeline" },
@@ -633,8 +642,9 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
           { label: "Gestão", view: "manager", manager: true },
           { label: "Campanhas", view: "campaigns", manager: true },
           { label: "Configurações", view: "settings", manager: true },
+          { label: "Faturamento Solutions", view: "solutions", ceo: true },
         ];
-        const list = cmds.filter((c) => (!c.manager || isManager) && c.label.toLowerCase().includes(paletteQ.toLowerCase()));
+        const list = cmds.filter((c) => (!c.manager || isManager) && (!c.ceo || isCeo) && c.label.toLowerCase().includes(paletteQ.toLowerCase()));
         return (
           <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 p-4 pt-24" onClick={() => setShowPalette(false)}>
             <div className="w-full max-w-lg overflow-hidden rounded-2xl border bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
@@ -867,6 +877,13 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                   <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Gestão</div>
                   <NavItem icon={<Crown className="h-4 w-4 text-amber-500" />} active={view === "manager"} onClick={() => setView("manager")} label="Painel do gestor" />
                   <NavItem icon={<SettingsIcon className="h-4 w-4" />} active={view === "settings"} onClick={() => setView("settings")} label="Configurações" />
+                </>
+              )}
+
+              {isCeo && (
+                <>
+                  <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-purple-400">Plataforma</div>
+                  <NavItem icon={<Building2 className="h-4 w-4 text-purple-500" />} active={view === "solutions"} onClick={() => setView("solutions")} label="Faturamento Solutions" />
                 </>
               )}
 
@@ -1372,6 +1389,9 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
             {/* ── MANAGER ── */}
             {view === "manager" && <ManagerView token={token} hideValues={hideValues} />}
+
+            {/* ── PLATAFORMA (CEO) ── */}
+            {view === "solutions" && isCeo && <FaturamentoSolutions token={token} />}
 
             {/* ── SETTINGS ── */}
             {view === "settings" && <SettingsView token={token} isManager={isManager} />}

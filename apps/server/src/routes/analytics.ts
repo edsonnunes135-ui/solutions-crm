@@ -1,18 +1,20 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
-import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { requireAuth, ownerScope, AuthedRequest } from "../middleware/auth";
 
 export const analyticsRouter = Router();
 analyticsRouter.use(requireAuth);
 
 // KPIs básicos — você vai evoluir isso para dashboards completos.
+// Vendedor (agent/viewer) vê só os números dos negócios dele; gestor vê tudo.
 analyticsRouter.get("/analytics/kpis", async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
+  const mine = ownerScope(req);
 
   const leads = await prisma.contact.count({ where: { orgId } });
-  const openDeals = await prisma.deal.count({ where: { orgId, status: "open" } });
+  const openDeals = await prisma.deal.count({ where: { orgId, status: "open", ...mine } });
   const pipelineValue = await prisma.deal.aggregate({
-    where: { orgId, status: "open" },
+    where: { orgId, status: "open", ...mine },
     _sum: { value: true },
   });
   const tasksOpen = await prisma.task.count({ where: { orgId, status: "open" } });
@@ -35,7 +37,7 @@ analyticsRouter.get("/analytics/series", async (req: AuthedRequest, res) => {
 
   const [contacts, wonDeals] = await Promise.all([
     prisma.contact.findMany({ where: { orgId, createdAt: { gte: since } }, select: { createdAt: true } }),
-    prisma.deal.findMany({ where: { orgId, status: "won", updatedAt: { gte: since } }, select: { updatedAt: true } }),
+    prisma.deal.findMany({ where: { orgId, status: "won", updatedAt: { gte: since }, ...ownerScope(req) }, select: { updatedAt: true } }),
   ]);
 
   const labels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];

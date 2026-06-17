@@ -13,6 +13,21 @@ export function requireRole(...roles: string[]) {
   };
 }
 
+// Papéis que enxergam TODA a empresa (gestor). Os demais (vendedor) são limitados.
+const MANAGER_ROLES = ["owner", "partner", "admin"];
+export function isManagerRole(role?: string) {
+  return !!role && MANAGER_ROLES.includes(role);
+}
+
+/**
+ * Filtro de "dono" para vendedores: o gestor vê tudo da empresa; o vendedor
+ * (agent/viewer) só enxerga os negócios que são dele (ownerId = ele mesmo).
+ * Use espalhando no `where` do Prisma: `where: { orgId, ...ownerScope(req) }`.
+ */
+export function ownerScope(req: AuthedRequest): { ownerId?: string } {
+  return isManagerRole(req.user?.role) ? {} : { ownerId: req.user!.userId };
+}
+
 export function requireAuth(req: AuthedRequest, res: Response, next: NextFunction) {
   const hdr = req.headers.authorization || "";
   const token = hdr.startsWith("Bearer ") ? hdr.slice(7) : "";

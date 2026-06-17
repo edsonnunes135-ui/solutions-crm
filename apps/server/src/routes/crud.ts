@@ -3,7 +3,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { enqueueEvent } from "../lib/queue";
-import { requireAuth, requireRole, AuthedRequest } from "../middleware/auth";
+import { requireAuth, requireRole, ownerScope, AuthedRequest } from "../middleware/auth";
 import { planForOrg } from "./billing";
 
 export const crudRouter = Router();
@@ -185,8 +185,9 @@ crudRouter.post("/pipelines", async (req: AuthedRequest, res) => {
 // Deals
 crudRouter.get("/deals", async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
+  // Vendedor (agent/viewer) só vê os negócios dele; gestor vê todos da empresa.
   const items = await prisma.deal.findMany({
-    where: { orgId },
+    where: { orgId, ...ownerScope(req) },
     orderBy: { updatedAt: "desc" },
     include: { stage: true, contact: true, pipeline: true },
     take: 300,
