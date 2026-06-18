@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { apiPost } from "../lib/api";
 import { saveAuth } from "../lib/auth";
 import TechBackground from "../components/TechBackground";
+import Foxy from "../components/Foxy";
 
 type Mode = "login" | "register" | "forgot" | "reset";
 
@@ -87,6 +88,9 @@ export default function AuthPage({ onAuth, onBack, initialMode = "login" }: Prop
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 p-4">
       <TechBackground />
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/30 to-slate-950/70" />
+      <div className="pointer-events-none absolute bottom-3 right-3 z-10 hidden sm:block">
+        <Foxy size={140} float />
+      </div>
       <div className="relative z-10 w-full max-w-md rounded-2xl border bg-white/95 p-8 shadow-xl backdrop-blur">
         {onBack && (
           <button onClick={onBack} className="mb-4 text-sm text-slate-500 hover:text-slate-800">← Voltar ao site</button>

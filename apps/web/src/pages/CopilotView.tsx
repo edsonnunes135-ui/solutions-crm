@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Sparkles, Send, AlertCircle } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
+import Foxy from "../components/Foxy";
 
 function Card({ children, className = "" }: any) {
   return <div className={`rounded-2xl border bg-white ${className}`}>{children}</div>;
@@ -43,11 +44,14 @@ export default function CopilotView({ token }: { token: string }) {
 
   return (
     <Card className="flex flex-col" >
-      <div className="p-4 pb-3 border-b">
-        <div className="flex items-center gap-2 text-base font-semibold">
-          <Sparkles className="h-5 w-5 text-violet-500" /> Copiloto de Vendas (IA)
+      <div className="flex items-center gap-3 p-4 pb-3 border-b">
+        <Foxy size={46} className="shrink-0" />
+        <div>
+          <div className="flex items-center gap-2 text-base font-semibold">
+            <Sparkles className="h-4 w-4 text-violet-500" /> Foxy · Copiloto de Vendas
+          </div>
+          <div className="text-sm text-slate-500">Powered by Claude. Peça mensagens, estratégias, respostas a objeções e mais.</div>
         </div>
-        <div className="text-sm text-slate-500">Powered by Claude. Peça mensagens, estratégias, respostas a objeções e mais.</div>
       </div>
 
       {enabled === false && (
@@ -59,7 +63,13 @@ export default function CopilotView({ token }: { token: string }) {
 
       <div className="flex-1 space-y-3 overflow-auto p-4" style={{ minHeight: 360, maxHeight: 480 }}>
         {chat.length === 0 && (
-          <div className="space-y-2">
+          <div className="space-y-3">
+            <div className="flex flex-col items-center py-2 text-center">
+              <Foxy size={112} float />
+              <div className="mt-2 max-w-sm text-sm text-slate-600">
+                Oi! Eu sou a <strong>Foxy</strong> 🦊, sua copilota de vendas. Me pergunte qualquer coisa — eu te ajudo a vender mais.
+              </div>
+            </div>
             <div className="text-sm text-slate-500">Comece com uma sugestão:</div>
             <div className="grid gap-2 sm:grid-cols-2">
               {sugestoes.map((s) => (
@@ -71,7 +81,8 @@ export default function CopilotView({ token }: { token: string }) {
           </div>
         )}
         {chat.map((m, i) => (
-          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+          <div key={i} className={`flex items-start gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            {m.role === "ai" && <Foxy size={30} className="mt-0.5 shrink-0" />}
             <div className={`max-w-[85%] whitespace-pre-wrap rounded-2xl border px-3 py-2 text-sm ${m.role === "user" ? "bg-slate-900 text-white" : "bg-white"}`}>
               {m.text}
             </div>
