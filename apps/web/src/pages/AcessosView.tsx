@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiGet } from "../lib/api";
+import { roleLabel } from "../lib/roles";
 
 interface AccessUser {
   id: string;
@@ -8,14 +9,6 @@ interface AccessUser {
   createdAt: string;
   companies: { org: string; role: string }[];
 }
-
-const roleLabel: Record<string, string> = {
-  owner: "Dono",
-  partner: "Sócio",
-  admin: "Gestor",
-  agent: "Vendedor",
-  viewer: "Visualização",
-};
 
 export default function AcessosView({ token }: { token: string }) {
   const [users, setUsers] = useState<AccessUser[]>([]);

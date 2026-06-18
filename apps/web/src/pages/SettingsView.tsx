@@ -3,6 +3,7 @@ import { Phone, Instagram, UserPlus, Trash2, CheckCircle2, CreditCard, Sparkles,
 import { apiGet, apiPost, apiPut, apiDelete } from "../lib/api";
 import { getUser, saveAuth } from "../lib/auth";
 import { enablePush, pushSupported } from "../lib/push";
+import { roleLabel } from "../lib/roles";
 
 function Card({ children, className = "" }: any) {
   return <div className={`rounded-2xl border bg-white ${className}`}>{children}</div>;
@@ -11,14 +12,6 @@ function Card({ children, className = "" }: any) {
 function Input(props: any) {
   return <input {...props} className={`w-full rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200 ${props.className ?? ""}`} />;
 }
-
-const roleLabel: Record<string, string> = {
-  owner: "CEO e Founder",
-  partner: "Sócio",
-  admin: "Gestor",
-  agent: "Vendedor",
-  viewer: "Visualização",
-};
 
 export default function SettingsView({ token, isManager }: { token: string; isManager: boolean }) {
   const isOwner = getUser()?.role === "owner";
@@ -564,7 +557,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
                 className="w-full rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200"
               >
                 <option value="agent">Vendedor</option>
-                <option value="admin">Gestor</option>
+                <option value="admin">Gerente</option>
                 <option value="partner">Sócio</option>
                 <option value="viewer">Somente visualização</option>
               </select>

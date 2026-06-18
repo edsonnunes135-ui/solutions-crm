@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiGet } from "../lib/api";
 import { relativeTime, usageLabel } from "../lib/presence";
+import { roleLabel } from "../lib/roles";
 
 interface Member {
   userId: string;
@@ -11,8 +12,6 @@ interface Member {
   lastSeenAt: string | null;
   usageMinutes: number;
 }
-
-const roleLabel: Record<string, string> = { owner: "Dono", partner: "Sócio", admin: "Gestor", agent: "Vendedor", viewer: "Visualização" };
 
 export default function VendedoresView({ token }: { token: string }) {
   const [rows, setRows] = useState<Member[]>([]);

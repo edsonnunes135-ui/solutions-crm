@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Crown, TrendingUp, TrendingDown, Users } from "lucide-react";
 import { apiGet } from "../lib/api";
+import { roleLabel } from "../lib/roles";
 
 function currencyBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -19,14 +20,6 @@ function KPI({ title, value, hint }: any) {
     </div>
   );
 }
-
-const roleLabel: Record<string, string> = {
-  owner: "CEO e Founder",
-  partner: "Sócio",
-  admin: "Gestor",
-  agent: "Vendedor",
-  viewer: "Visualização",
-};
 
 export default function ManagerView({ token, hideValues = false }: { token: string; hideValues?: boolean }) {
   const [data, setData] = useState<any>(null);

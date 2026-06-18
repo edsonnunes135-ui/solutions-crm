@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiGet } from "../lib/api";
 import { relativeTime, usageLabel } from "../lib/presence";
+import { roleLabel } from "../lib/roles";
 
 interface Presence {
   id: string;
@@ -12,8 +13,6 @@ interface Presence {
   lastSeenAt: string | null;
   usageMinutes: number;
 }
-
-const roleLabel: Record<string, string> = { owner: "Dono", partner: "Sócio", admin: "Gestor", agent: "Vendedor", viewer: "Visualização" };
 
 function Dot({ online }: { online: boolean }) {
   return (
