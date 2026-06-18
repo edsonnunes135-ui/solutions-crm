@@ -114,6 +114,7 @@ adminRouter.get("/admin/metrics", requirePlatformAdmin, async (_req, res) => {
   let newThisMonth = 0;
   let totalUsers = 0;
   let clientCompanies = 0;
+  const payers: { monthly: number; createdAt: Date }[] = [];
 
   const companies = orgs
     .map((o) => {
@@ -133,6 +134,7 @@ adminRouter.get("/admin/metrics", requirePlatformAdmin, async (_req, res) => {
         if (o.plan !== "trial") {
           mrr += monthly;
           activeSubscriptions += 1;
+          payers.push({ monthly, createdAt: o.createdAt });
         }
         if (o.createdAt >= monthStart) newThisMonth += 1;
       }
@@ -151,9 +153,29 @@ adminRouter.get("/admin/metrics", requirePlatformAdmin, async (_req, res) => {
     })
     .filter((c): c is NonNullable<typeof c> => c !== null);
 
+  // Faturamento TOTAL acumulado (estimado) + série dos últimos 12 meses.
+  // Estimativa: cada empresa paga seu valor mensal desde que foi criada.
+  const monthsBetween = (from: Date, to: Date) =>
+    Math.max(1, (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth()) + 1);
+  const totalRevenue = payers.reduce((s, p) => s + p.monthly * monthsBetween(p.createdAt, now), 0);
+  const revenueByMonth: { label: string; value: number }[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+    const value = payers.filter((p) => p.createdAt <= end).reduce((s, p) => s + p.monthly, 0);
+    revenueByMonth.push({ label: d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }), value });
+  }
+  const firstClient = payers.length
+    ? payers.reduce((min, p) => (p.createdAt < min ? p.createdAt : min), payers[0].createdAt)
+    : null;
+  const monthsTracked = firstClient ? monthsBetween(firstClient, now) : 0;
+
   res.json({
     mrr,
     arr: mrr * 12,
+    totalRevenue,
+    monthsTracked,
+    revenueByMonth,
     totalCompanies: clientCompanies, // só clientes (exclui a conta interna do CEO)
     activeSubscriptions,
     trialCount: planCounts.trial,
@@ -221,4 +243,58 @@ adminRouter.post("/admin/notices", requirePlatformAdmin, async (req, res) => {
 adminRouter.delete("/admin/notices", requirePlatformAdmin, async (_req, res) => {
   await prisma.platformNotice.updateMany({ where: { active: true }, data: { active: false } });
   res.json({ ok: true });
+});
+
+// ── Caixa de entrada de SUPORTE do CEO (todas as empresas) ───────────────────
+adminRouter.get("/admin/support/threads", requirePlatformAdmin, async (_req, res) => {
+  const msgs = await prisma.chatMessage.findMany({ where: { scope: "support" }, orderBy: { createdAt: "desc" }, take: 1000 });
+  const byOrg = new Map<string, { last: (typeof msgs)[number]; count: number }>();
+  for (const m of msgs) {
+    const cur = byOrg.get(m.orgId);
+    if (cur) cur.count += 1;
+    else byOrg.set(m.orgId, { last: m, count: 1 });
+  }
+  const orgs = await prisma.organization.findMany({
+    where: { id: { in: [...byOrg.keys()] } },
+    select: { id: true, name: true, setting: { select: { brandName: true } } },
+  });
+  const nameById = new Map(orgs.map((o) => [o.id, o.setting?.brandName || o.name]));
+  const threads = [...byOrg.entries()]
+    .map(([orgId, t]) => ({
+      orgId,
+      orgName: nameById.get(orgId) ?? "Empresa",
+      lastBody: t.last.body,
+      lastAt: t.last.createdAt,
+      lastFromCeo: t.last.fromRole === "ceo",
+      count: t.count,
+    }))
+    .sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
+  res.json(threads);
+});
+
+adminRouter.get("/admin/support/:orgId", requirePlatformAdmin, async (req, res) => {
+  const msgs = await prisma.chatMessage.findMany({
+    where: { scope: "support", orgId: String(req.params.orgId) },
+    orderBy: { createdAt: "asc" },
+    take: 300,
+  });
+  res.json(msgs);
+});
+
+const SupportReply = z.object({ body: z.string().min(1).max(2000) });
+adminRouter.post("/admin/support/:orgId", requirePlatformAdmin, async (req: AuthedRequest, res) => {
+  const parsed = SupportReply.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+  const u = await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { name: true } });
+  const msg = await prisma.chatMessage.create({
+    data: {
+      scope: "support",
+      orgId: String(req.params.orgId),
+      fromUserId: req.user!.userId,
+      fromName: u?.name ?? "CEO",
+      fromRole: "ceo",
+      body: parsed.data.body,
+    },
+  });
+  res.json(msg);
 });

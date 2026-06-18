@@ -15,6 +15,9 @@ interface Company {
 interface Metrics {
   mrr: number;
   arr: number;
+  totalRevenue: number;
+  monthsTracked: number;
+  revenueByMonth: { label: string; value: number }[];
   totalCompanies: number;
   activeSubscriptions: number;
   trialCount: number;
@@ -34,7 +37,8 @@ const planStyle: Record<string, string> = {
   business: "border-purple-300 text-purple-700",
 };
 
-export default function FaturamentoSolutions({ token }: { token: string }) {
+export default function FaturamentoSolutions({ token, hideValues = false }: { token: string; hideValues?: boolean }) {
+  const money = (n: number) => (hideValues ? "R$ ••••••" : brl(n));
   const [data, setData] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -110,12 +114,14 @@ export default function FaturamentoSolutions({ token }: { token: string }) {
     return <div className="p-6 text-sm text-red-600">Acesso restrito ao CEO da plataforma.</div>;
   if (error || !data) return <div className="p-6 text-sm text-red-600">Não foi possível carregar agora. Tente de novo.</div>;
 
+  const meses = data.monthsTracked === 1 ? "mês" : "meses";
   const cards = [
-    { label: "MRR (receita recorrente/mês)", value: brl(data.mrr), hint: `${brl(data.arr)} por ano` },
+    { label: "MRR (receita recorrente/mês)", value: money(data.mrr), hint: `${money(data.arr)} por ano` },
+    { label: "Faturamento total acumulado", value: money(data.totalRevenue), hint: data.monthsTracked > 0 ? `em ${data.monthsTracked} ${meses} de operação` : "ainda sem assinaturas pagas" },
     { label: "Assinaturas ativas", value: String(data.activeSubscriptions), hint: `${data.totalCompanies} empresas no total` },
-    { label: "Em teste grátis", value: String(data.trialCount), hint: `${data.newThisMonth} novas este mês` },
-    { label: "Acessos (usuários) na base", value: String(data.totalUsers), hint: "Somando todas as empresas" },
+    { label: "Acessos (usuários) na base", value: String(data.totalUsers), hint: `${data.trialCount} em teste · ${data.newThisMonth} novas este mês` },
   ];
+  const maxMonth = Math.max(1, ...data.revenueByMonth.map((m) => m.value));
 
   return (
     <div className="space-y-6 p-1">
@@ -137,6 +143,22 @@ export default function FaturamentoSolutions({ token }: { token: string }) {
             <div className="mt-1 text-xs text-slate-400">{c.hint}</div>
           </div>
         ))}
+      </div>
+
+      <div className="rounded-2xl border bg-white p-4">
+        <div className="mb-1 text-sm font-medium text-slate-600">Faturamento por mês (últimos 12 meses)</div>
+        <div className="mb-3 text-xs text-slate-400">Estimativa: cada assinatura ativa conta desde que entrou. {hideValues ? "Valores ocultos." : ""}</div>
+        <div className="flex items-end gap-1.5" style={{ height: 120 }}>
+          {data.revenueByMonth.map((m, i) => (
+            <div key={i} className="flex flex-1 flex-col items-center justify-end gap-1" title={`${m.label}: ${money(m.value)}`}>
+              <div
+                className="w-full rounded-t bg-gradient-to-t from-blue-500 to-indigo-500"
+                style={{ height: `${Math.round((m.value / maxMonth) * 96)}px`, minHeight: m.value > 0 ? 4 : 2, opacity: m.value > 0 ? 1 : 0.25 }}
+              />
+              <div className="text-[10px] text-slate-400">{m.label.replace(".", "")}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="rounded-2xl border bg-white p-4">
@@ -209,7 +231,7 @@ export default function FaturamentoSolutions({ token }: { token: string }) {
                     </span>
                   </td>
                   <td className="px-4 py-2 text-slate-600">{c.seats}</td>
-                  <td className="px-4 py-2 text-slate-800">{c.monthly > 0 ? brl(c.monthly) : "—"}</td>
+                  <td className="px-4 py-2 text-slate-800">{c.monthly > 0 ? money(c.monthly) : "—"}</td>
                   <td className="px-4 py-2 text-slate-500">{new Date(c.createdAt).toLocaleDateString("pt-BR")}</td>
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-2">

@@ -69,6 +69,21 @@ model User {
   tasks       Task[]       @relation("TaskAssignee")
 }
 
+// Canais de comunicação ao vivo: "team" (gestor↔vendedores da empresa) e
+// "support" (gestor da empresa ↔ CEO da plataforma).
+model ChatMessage {
+  id         String   @id @default(cuid())
+  scope      String // "team" | "support"
+  orgId      String
+  fromUserId String
+  fromName   String // nome de quem enviou (denormalizado p/ exibir)
+  fromRole   String // owner/partner/admin/agent/viewer/ceo
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([scope, orgId, createdAt])
+}
+
 // Aviso global da plataforma (CEO dispara, todos os usuários veem)
 model PlatformNotice {
   id        String   @id @default(cuid())
