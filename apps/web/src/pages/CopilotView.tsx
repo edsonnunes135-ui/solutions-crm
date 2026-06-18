@@ -65,7 +65,7 @@ export default function CopilotView({ token }: { token: string }) {
         {chat.length === 0 && (
           <div className="space-y-3">
             <div className="flex flex-col items-center py-2 text-center">
-              <Foxy size={112} float />
+              <Foxy pose="aceno" size={120} float />
               <div className="mt-2 max-w-sm text-sm text-slate-600">
                 Oi! Eu sou a <strong>Foxy</strong> 🦊, sua copilota de vendas. Me pergunte qualquer coisa — eu te ajudo a vender mais.
               </div>
@@ -88,7 +88,11 @@ export default function CopilotView({ token }: { token: string }) {
             </div>
           </div>
         ))}
-        {loading && <div className="text-sm text-slate-400">Pensando…</div>}
+        {loading && (
+          <div className="flex items-center gap-2 text-sm text-slate-400">
+            <Foxy pose="pensando" size={28} className="shrink-0" /> Pensando…
+          </div>
+        )}
         <div ref={endRef} />
       </div>
 

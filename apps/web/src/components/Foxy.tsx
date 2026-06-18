@@ -7,17 +7,20 @@ import React, { useState } from "react";
 export default function Foxy({
   size = 96,
   float = false,
+  pose = "",
   className = "",
 }: {
   size?: number;
   float?: boolean;
+  /** "", "pensando", "aceno", "feliz", "venda", "icone" */
+  pose?: string;
   className?: string;
 }) {
   const [ok, setOk] = useState(true);
   if (!ok) return null;
   return (
     <img
-      src="/foxy.png"
+      src={pose ? `/foxy-${pose}.png` : "/foxy.png"}
       alt="Foxy, a assistente da Solutions"
       onError={() => setOk(false)}
       draggable={false}
