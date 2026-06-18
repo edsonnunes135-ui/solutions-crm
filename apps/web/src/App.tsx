@@ -10,7 +10,6 @@ import { clearAuth, getToken, getUser, impersonatingName, exitImpersonation } fr
 import AuthPage from "./pages/AuthPage";
 import LandingPage from "./pages/LandingPage";
 import TechBackground from "./components/TechBackground";
-import Foxy from "./components/Foxy";
 import ManagerView from "./pages/ManagerView";
 import SettingsView from "./pages/SettingsView";
 import AutomationsView from "./pages/AutomationsView";
@@ -673,8 +672,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
   if (loadingData) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-3">
-        <Foxy size={150} float />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-slate-500 text-sm">Carregando…</div>
       </div>
     );

@@ -48,7 +48,3 @@ html:not(.dark) .app-shell :is(
   .bg-white, .bg-slate-50, .bg-slate-100, .bg-sky-50, .bg-amber-50,
   .bg-red-50, .bg-green-50, .bg-violet-50, .bg-blue-50, .bg-emerald-50
 ) { color: #0f172a; }
-
-/* ── Mascote Foxy — flutuação suave ──────────────────────────────────────── */
-@keyframes foxyFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
-.foxy-float { animation: foxyFloat 3.2s ease-in-out infinite; }
