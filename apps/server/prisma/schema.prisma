@@ -59,6 +59,8 @@ model User {
   password  String
   resetCode          String? // código de recuperação de senha (gerado aleatoriamente)
   resetCodeExpiresAt DateTime? // validade do código
+  lastSeenAt         DateTime? // presença: último "batimento" recebido do app
+  usageMinutes       Int       @default(0) // tempo total de uso acumulado (minutos)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -20,6 +20,7 @@ import { mpWebhookRouter } from "./routes/mpwebhook";
 import { pushRouter } from "./routes/push";
 import { orgsRouter } from "./routes/orgs";
 import { adminRouter } from "./routes/admin";
+import { presenceRouter } from "./routes/presence";
 
 dotenv.config();
 
@@ -65,6 +66,7 @@ app.use(broadcastRouter);
 app.use(pushRouter);
 app.use(orgsRouter);
 app.use(adminRouter);
+app.use(presenceRouter);
 
 const port = Number(process.env.PORT || 4000);
 app.listen(port, () => {

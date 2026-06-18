@@ -12,6 +12,7 @@ import { prisma } from "../lib/prisma";
 import { requireAuth, AuthedRequest } from "../middleware/auth";
 import { isPlatformAdminEmail, requirePlatformAdmin } from "../lib/platformAdmin";
 import { PLANS } from "./billing";
+import { ONLINE_WINDOW_MS } from "./presence";
 
 export const adminRouter = Router();
 adminRouter.use(requireAuth);
@@ -56,6 +57,34 @@ adminRouter.get("/admin/users", requirePlatformAdmin, async (_req, res) => {
       email: u.email,
       createdAt: u.createdAt,
       companies: u.memberships.map((m) => ({ org: m.org.name, role: m.role })),
+    }))
+  );
+});
+
+// Presença — todos os assinantes/usuários online/offline, tempo de uso, último acesso (só CEO)
+adminRouter.get("/admin/presence", requirePlatformAdmin, async (_req, res) => {
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      lastSeenAt: true,
+      usageMinutes: true,
+      memberships: { take: 1, select: { role: true, org: { select: { name: true } } } },
+    },
+    orderBy: { lastSeenAt: { sort: "desc", nulls: "last" } },
+  });
+  const now = Date.now();
+  res.json(
+    users.map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      company: u.memberships[0]?.org?.name ?? "",
+      role: u.memberships[0]?.role ?? "",
+      online: u.lastSeenAt ? now - new Date(u.lastSeenAt).getTime() < ONLINE_WINDOW_MS : false,
+      lastSeenAt: u.lastSeenAt,
+      usageMinutes: u.usageMinutes,
     }))
   );
 });

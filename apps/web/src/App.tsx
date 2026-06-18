@@ -19,8 +19,10 @@ import HomeView from "./pages/HomeView";
 import FaturamentoSolutions from "./pages/FaturamentoSolutions";
 import AcessosView from "./pages/AcessosView";
 import TemplatesView from "./pages/TemplatesView";
+import PresencaView from "./pages/PresencaView";
+import VendedoresView from "./pages/VendedoresView";
 
-type View = "home" | "inbox" | "pipeline" | "contacts" | "automations" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions" | "acessos" | "templates";
+type View = "home" | "inbox" | "pipeline" | "contacts" | "automations" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions" | "acessos" | "templates" | "presenca" | "vendedores";
 
 // ── UI primitives ────────────────────────────────────────────────────────────
 
@@ -199,6 +201,14 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
     apiGet("/notices/active", token).then(setNotice).catch(() => setNotice(null));
   }, [token]);
   const impName = impersonatingName();
+
+  // Presença: avisa o servidor que este usuário está ativo (batimento a cada 60s)
+  useEffect(() => {
+    const ping = () => apiPost("/presence/ping", {}, token).catch(() => {});
+    ping();
+    const t = setInterval(ping, 60000);
+    return () => clearInterval(t);
+  }, [token]);
 
   const [view, setView] = useState<View>("home");
   const [q, setQ] = useState("");
@@ -700,11 +710,13 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
           { label: "BI / Analytics", view: "analytics" },
           { label: "Copiloto de IA", view: "ai" },
           { label: "Gestão", view: "manager", manager: true },
+          { label: "Vendedores (presença)", view: "vendedores", manager: true },
           { label: "Campanhas", view: "campaigns", manager: true },
           { label: "Templates de funil", view: "templates", manager: true },
           { label: "Configurações", view: "settings", manager: true },
           { label: "Faturamento Solutions", view: "solutions", ceo: true },
           { label: "Acessos", view: "acessos", ceo: true },
+          { label: "Presença", view: "presenca", ceo: true },
         ];
         const list = cmds.filter((c) => (!c.manager || isManager) && (!c.ceo || isCeo) && c.label.toLowerCase().includes(paletteQ.toLowerCase()));
         return (
@@ -939,6 +951,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                 <>
                   <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Gestão</div>
                   <NavItem icon={<Crown className="h-4 w-4 text-amber-500" />} active={view === "manager"} onClick={() => setView("manager")} label="Painel do gestor" />
+                  <NavItem icon={<UserCheck className="h-4 w-4 text-emerald-500" />} active={view === "vendedores"} onClick={() => setView("vendedores")} label="Vendedores" />
                   <NavItem icon={<SettingsIcon className="h-4 w-4" />} active={view === "settings"} onClick={() => setView("settings")} label="Configurações" />
                 </>
               )}
@@ -948,6 +961,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                   <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-purple-400">Plataforma</div>
                   <NavItem icon={<Building2 className="h-4 w-4 text-purple-500" />} active={view === "solutions"} onClick={() => setView("solutions")} label="Faturamento Solutions" />
                   <NavItem icon={<Users className="h-4 w-4 text-purple-500" />} active={view === "acessos"} onClick={() => setView("acessos")} label="Acessos" />
+                  <NavItem icon={<UserCheck className="h-4 w-4 text-purple-500" />} active={view === "presenca"} onClick={() => setView("presenca")} label="Presença" />
                 </>
               )}
 
@@ -1475,9 +1489,13 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
             {/* ── PLATAFORMA (CEO) ── */}
             {view === "solutions" && isCeo && <FaturamentoSolutions token={token} />}
             {view === "acessos" && isCeo && <AcessosView token={token} />}
+            {view === "presenca" && isCeo && <PresencaView token={token} />}
 
             {/* ── TEMPLATES (Vendas) ── */}
             {view === "templates" && isManager && <TemplatesView token={token} />}
+
+            {/* ── VENDEDORES (presença, gestor) ── */}
+            {view === "vendedores" && isManager && <VendedoresView token={token} />}
 
             {/* ── SETTINGS ── */}
             {view === "settings" && <SettingsView token={token} isManager={isManager} />}
