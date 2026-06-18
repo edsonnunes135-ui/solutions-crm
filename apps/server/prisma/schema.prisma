@@ -84,6 +84,19 @@ model ChatMessage {
   @@index([scope, orgId, createdAt])
 }
 
+// Reuniões por vídeo agendadas pelo gestor (a sala em si é o Jitsi por org)
+model Meeting {
+  id            String   @id @default(cuid())
+  orgId         String
+  title         String
+  scheduledAt   DateTime
+  createdById   String
+  createdByName String
+  createdAt     DateTime @default(now())
+
+  @@index([orgId, scheduledAt])
+}
+
 // Aviso global da plataforma (CEO dispara, todos os usuários veem)
 model PlatformNotice {
   id        String   @id @default(cuid())

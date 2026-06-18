@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MessageSquare, Users, KanbanSquare, Zap, LineChart as LineChartIcon,
   Sparkles, Search, Plus, Send, Clock, CheckCircle2, AlertCircle, Filter,
-  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy,
+  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video,
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
@@ -24,8 +24,9 @@ import VendedoresView from "./pages/VendedoresView";
 import ComunicacaoView from "./pages/ComunicacaoView";
 import SuporteView from "./pages/SuporteView";
 import SuporteCeoView from "./pages/SuporteCeoView";
+import ReunioesView from "./pages/ReunioesView";
 
-type View = "home" | "inbox" | "pipeline" | "contacts" | "automations" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions" | "acessos" | "templates" | "presenca" | "vendedores" | "comunicacao" | "suporte" | "suporte-ceo";
+type View = "home" | "inbox" | "pipeline" | "contacts" | "automations" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions" | "acessos" | "templates" | "presenca" | "vendedores" | "comunicacao" | "suporte" | "suporte-ceo" | "reunioes";
 
 // ── UI primitives ────────────────────────────────────────────────────────────
 
@@ -713,6 +714,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
           { label: "BI / Analytics", view: "analytics" },
           { label: "Copiloto de IA", view: "ai" },
           { label: "Chat da equipe", view: "comunicacao" },
+          { label: "Reuniões por vídeo", view: "reunioes" },
           { label: "Suporte (falar com o CEO)", view: "suporte", manager: true },
           { label: "Suporte aos clientes", view: "suporte-ceo", ceo: true },
           { label: "Gestão", view: "manager", manager: true },
@@ -955,6 +957,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
               <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Comunicação</div>
               <NavItem icon={<MessagesSquare className="h-4 w-4 text-teal-500" />} active={view === "comunicacao"} onClick={() => setView("comunicacao")} label="Chat da equipe" />
+              <NavItem icon={<Video className="h-4 w-4 text-rose-500" />} active={view === "reunioes"} onClick={() => setView("reunioes")} label="Reuniões (vídeo)" />
               {isManager && <NavItem icon={<LifeBuoy className="h-4 w-4 text-sky-500" />} active={view === "suporte"} onClick={() => setView("suporte")} label="Suporte (CEO)" />}
 
               {isManager && (
@@ -1510,6 +1513,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
             {/* ── COMUNICAÇÃO (chat) ── */}
             {view === "comunicacao" && <ComunicacaoView token={token} />}
+            {view === "reunioes" && <ReunioesView token={token} isManager={isManager} />}
             {view === "suporte" && isManager && <SuporteView token={token} />}
             {view === "suporte-ceo" && isCeo && <SuporteCeoView token={token} />}
 

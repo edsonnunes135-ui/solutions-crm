@@ -22,6 +22,7 @@ import { orgsRouter } from "./routes/orgs";
 import { adminRouter } from "./routes/admin";
 import { presenceRouter } from "./routes/presence";
 import { chatRouter } from "./routes/chat";
+import { meetingsRouter } from "./routes/meetings";
 
 dotenv.config();
 
@@ -69,6 +70,7 @@ app.use(orgsRouter);
 app.use(adminRouter);
 app.use(presenceRouter);
 app.use(chatRouter);
+app.use(meetingsRouter);
 
 const port = Number(process.env.PORT || 4000);
 app.listen(port, () => {
