@@ -15,9 +15,15 @@ function firstName(name: string) {
 }
 
 /** Template HTML do e-mail de boas-vindas (tecnológico, responsivo, compatível com clientes de e-mail). */
-function welcomeHtml(params: { name: string; orgName?: string }) {
+function welcomeHtml(params: { name: string; orgName?: string; brandName?: string; brandLogoUrl?: string }) {
   const first = firstName(params.name) || "vendedor";
   const org = params.orgName ? ` da <strong>${params.orgName}</strong>` : "";
+  // White-label: se o parceiro tem marca, o e-mail veste a marca dele (nada de "Solutions").
+  const logo = params.brandLogoUrl || `${APP_URL}/logo.jpeg`;
+  const brandHeader = params.brandName
+    ? params.brandName
+    : `Solutions <span style="color:#38bdf8;">CRM</span>`;
+  const brandFooter = params.brandName || "Solutions CRM";
   return `<!doctype html>
 <html lang="pt-br"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#05070f;font-family:'Segoe UI',Roboto,Arial,sans-serif;">
@@ -27,7 +33,7 @@ function welcomeHtml(params: { name: string; orgName?: string }) {
 
         <tr><td style="background:linear-gradient(135deg,#0a1d44 0%,#0d2347 45%,#06101f 100%);padding:36px 36px 28px;">
           <table role="presentation" width="100%"><tr>
-            <td style="font-size:22px;font-weight:700;color:#ffffff;letter-spacing:.5px;"><img src="${APP_URL}/logo.jpeg" width="40" height="40" alt="Solutions" style="border-radius:11px;vertical-align:middle;margin-right:12px;">Solutions <span style="color:#38bdf8;">CRM</span></td>
+            <td style="font-size:22px;font-weight:700;color:#ffffff;letter-spacing:.5px;"><img src="${logo}" width="40" height="40" alt="logo" style="border-radius:11px;vertical-align:middle;margin-right:12px;">${brandHeader}</td>
             <td align="right" style="font-size:11px;color:#7dd3fc;letter-spacing:2px;text-transform:uppercase;">Inteligência Artificial</td>
           </tr></table>
           <div style="margin-top:26px;font-size:32px;line-height:1.2;font-weight:800;color:#ffffff;">
@@ -76,10 +82,8 @@ function welcomeHtml(params: { name: string; orgName?: string }) {
         </td></tr>
 
         <tr><td style="background:#06101f;padding:20px 36px;border-top:1px solid #16233c;">
-          <div style="font-size:12px;color:#64748b;">Solutions CRM — A tecnologia que impulsiona o seu futuro.</div>
-          <div style="font-size:12px;color:#475569;margin-top:4px;">
-            <a href="${APP_URL}" style="color:#38bdf8;text-decoration:none;">solutionscrm.com.br</a>
-          </div>
+          <div style="font-size:12px;color:#64748b;">${brandFooter} — A tecnologia que impulsiona o seu futuro.</div>
+          ${params.brandName ? "" : `<div style="font-size:12px;color:#475569;margin-top:4px;"><a href="${APP_URL}" style="color:#38bdf8;text-decoration:none;">solutionscrm.com.br</a></div>`}
         </td></tr>
 
       </table>
@@ -89,7 +93,7 @@ function welcomeHtml(params: { name: string; orgName?: string }) {
 }
 
 /** Envia o e-mail de boas-vindas (best-effort). */
-export async function sendWelcomeEmail(params: { to: string; name: string; orgName?: string }) {
+export async function sendWelcomeEmail(params: { to: string; name: string; orgName?: string; brandName?: string; brandLogoUrl?: string }) {
   if (!RESEND_KEY) return { sent: false, note: "email_not_configured" };
   try {
     const r = await fetch("https://api.resend.com/emails", {
@@ -98,7 +102,7 @@ export async function sendWelcomeEmail(params: { to: string; name: string; orgNa
       body: JSON.stringify({
         from: EMAIL_FROM,
         to: [params.to],
-        subject: `Bem-vindo(a) ao Solutions CRM, ${firstName(params.name)}! 🚀`,
+        subject: `Bem-vindo(a) a ${params.brandName || "Solutions CRM"}, ${firstName(params.name)}! 🚀`,
         html: welcomeHtml(params),
       }),
     });

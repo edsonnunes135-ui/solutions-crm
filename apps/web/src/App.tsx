@@ -177,11 +177,13 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 // ── Main App ─────────────────────────────────────────────────────────────────
 
 export default function App() {
+  // white-label: link do parceiro (?marca=<orgId>) abre direto o cadastro com a marca dele
+  const marca = new URLSearchParams(window.location.search).get("marca") || "";
   const [authed, setAuthed] = useState(!!getToken());
   const [auth, setAuth] = useState<null | "login" | "register">(null);
 
   if (authed) return <CRMApp onLogout={() => { setAuthed(false); setAuth(null); }} />;
-  if (auth) return <AuthPage initialMode={auth} onAuth={() => setAuthed(true)} onBack={() => setAuth(null)} />;
+  if (auth || marca) return <AuthPage initialMode={auth ?? "register"} marca={marca} onAuth={() => setAuthed(true)} onBack={() => setAuth(null)} />;
   return <LandingPage onEnter={() => setAuth("login")} onSignup={() => setAuth("register")} />;
 }
 

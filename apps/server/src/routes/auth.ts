@@ -18,13 +18,14 @@ const RegisterSchema = z.object({
     .min(8, "minimo 8 caracteres")
     .regex(/[a-zA-Z]/, "precisa de letra")
     .regex(/[0-9]/, "precisa de numero"),
+  marca: z.string().optional(), // white-label: orgId do parceiro (revenda) que trouxe o cliente
 });
 
 authRouter.post("/auth/register", async (req, res) => {
   const parsed = RegisterSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", issues: parsed.error.issues });
 
-  const { orgName, name, email, password } = parsed.data;
+  const { orgName, name, email, password, marca } = parsed.data;
 
   const exists = await prisma.user.findUnique({ where: { email } });
   if (exists) return res.status(409).json({ error: "email_in_use" });
@@ -32,6 +33,23 @@ authRouter.post("/auth/register", async (req, res) => {
   const trialEndsAt = new Date();
   trialEndsAt.setDate(trialEndsAt.getDate() + 14);
   const org = await prisma.organization.create({ data: { name: orgName, trialEndsAt } });
+
+  // White-label: se veio pelo link de um parceiro, vincula o cliente a ele e
+  // herda a marca do parceiro (logo, nome, cor) — o cliente nunca vê "Solutions".
+  let brand: { brandName?: string; brandLogoUrl?: string } = {};
+  if (marca && marca !== org.id) {
+    const reseller = await prisma.organization.findUnique({ where: { id: marca }, include: { setting: true } });
+    if (reseller) {
+      await prisma.organization.update({ where: { id: org.id }, data: { resellerOrgId: reseller.id } });
+      const rs = reseller.setting;
+      if (rs && (rs.brandName || rs.brandColor || rs.brandLogoUrl)) {
+        await prisma.orgSetting.create({
+          data: { orgId: org.id, brandName: rs.brandName, brandColor: rs.brandColor, brandLogoUrl: rs.brandLogoUrl },
+        });
+        brand = { brandName: rs.brandName ?? undefined, brandLogoUrl: rs.brandLogoUrl ?? undefined };
+      }
+    }
+  }
   const user = await prisma.user.create({
     data: { name, email, password: await bcrypt.hash(password, 10) },
   });
@@ -58,7 +76,7 @@ authRouter.post("/auth/register", async (req, res) => {
   });
 
   // E-mail de boas-vindas (best-effort — nunca bloqueia o cadastro)
-  sendWelcomeEmail({ to: email, name, orgName }).catch(() => {});
+  sendWelcomeEmail({ to: email, name, orgName, brandName: brand.brandName, brandLogoUrl: brand.brandLogoUrl }).catch(() => {});
 
   const secret = process.env.JWT_SECRET || "change_me";
   const token = jwt.sign({ userId: user.id, orgId: org.id, role: "owner" }, secret, { expiresIn: "7d" });

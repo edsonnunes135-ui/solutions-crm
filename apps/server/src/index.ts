@@ -23,6 +23,7 @@ import { adminRouter } from "./routes/admin";
 import { presenceRouter } from "./routes/presence";
 import { chatRouter } from "./routes/chat";
 import { meetingsRouter } from "./routes/meetings";
+import { publicRouter } from "./routes/publicBranding";
 
 dotenv.config();
 
@@ -53,6 +54,7 @@ const apiLimiter = rateLimit({
 app.use(apiLimiter);
 
 app.use(healthRouter);
+app.use(publicRouter);
 app.use(authRouter);
 // Webhooks públicos (sem JWT) — devem vir ANTES dos routers que aplicam requireAuth
 app.use(webhooksRouter);

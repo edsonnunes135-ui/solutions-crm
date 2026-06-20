@@ -26,12 +26,13 @@ enum TaskStatus {
 }
 
 model Organization {
-  id          String    @id @default(cuid())
-  name        String
-  plan        String    @default("trial") // trial/starter/pro/business
-  trialEndsAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  name          String
+  plan          String    @default("trial") // trial/starter/pro/business
+  trialEndsAt   DateTime?
+  resellerOrgId String? // white-label: empresa-parceira (revenda) que trouxe este cliente
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   users             Membership[]
   contacts          Contact[]

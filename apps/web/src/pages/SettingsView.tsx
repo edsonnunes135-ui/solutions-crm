@@ -46,6 +46,15 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
   const [orgs, setOrgs] = useState<any[]>([]);
   const [newOrgName, setNewOrgName] = useState("");
   const [orgMsg, setOrgMsg] = useState("");
+  const [clients, setClients] = useState<any[]>([]);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const myOrgId = getUser()?.orgId ?? "";
+  const brandLink = typeof window !== "undefined" ? `${window.location.origin}/?marca=${myOrgId}` : "";
+
+  useEffect(() => {
+    if (!isManager) return;
+    apiGet("/reseller/clients", token).then(setClients).catch(() => {});
+  }, [token, isManager]);
 
   // Plano
   const [billing, setBilling] = useState<any>(null);
@@ -405,6 +414,35 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
             <div className="text-sm text-slate-500">Gerencie várias empresas com o mesmo acesso. Crie uma conta para cada cliente e alterne entre elas.</div>
           </div>
           <div className="p-4 pt-0 space-y-3">
+            <div className="rounded-2xl border bg-slate-50 p-3">
+              <div className="text-sm font-medium text-slate-700">🔗 Seu link de cadastro (com a sua marca)</div>
+              <div className="mt-1 text-xs text-slate-500">Compartilhe este link. Quem se cadastrar por ele entra já com a SUA marca (logo, nome e cor) e fica vinculado a você — nunca vê "Solutions".</div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <input readOnly value={brandLink} className="min-w-[220px] flex-1 rounded-xl border bg-white px-3 py-2 text-xs text-slate-600 outline-none" />
+                <button
+                  onClick={() => { navigator.clipboard?.writeText(brandLink); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); }}
+                  className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800"
+                >
+                  {linkCopied ? "Copiado! ✓" : "Copiar link"}
+                </button>
+              </div>
+              <div className="mt-2 text-[11px] text-slate-400">Dica: configure sua marca na aba <strong>Marca</strong> (logo, nome e cor) antes de divulgar.</div>
+            </div>
+
+            <div className="rounded-2xl border">
+              <div className="border-b px-3 py-2 text-sm font-medium text-slate-600">Seus clientes pelo link ({clients.length})</div>
+              <div className="divide-y">
+                {clients.length === 0 && <div className="px-3 py-4 text-center text-xs text-slate-400">Nenhum cliente pelo seu link ainda. Compartilhe o link acima.</div>}
+                {clients.map((c) => (
+                  <div key={c.orgId} className="px-3 py-2 text-sm">
+                    <div className="font-medium text-slate-800">{c.name}</div>
+                    <div className="text-xs text-slate-500">Plano: {c.plan} · {c.users} acesso(s) · desde {new Date(c.createdAt).toLocaleDateString("pt-BR")}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">Multi-empresa (alternar manualmente)</div>
             <div className="space-y-2">
               {orgs.map((o) => (
                 <div key={o.orgId} className="flex items-center justify-between rounded-2xl border p-3">

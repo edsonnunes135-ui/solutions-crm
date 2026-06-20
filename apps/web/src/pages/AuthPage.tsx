@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { apiPost } from "../lib/api";
+import React, { useEffect, useState } from "react";
+import { apiGet, apiPost } from "../lib/api";
 import { saveAuth } from "../lib/auth";
 import TechBackground from "../components/TechBackground";
 
@@ -9,6 +9,8 @@ interface Props {
   onAuth: () => void;
   onBack?: () => void;
   initialMode?: "login" | "register";
+  /** white-label: orgId do parceiro (revenda) vindo do link ?marca= */
+  marca?: string;
 }
 
 /** Traduz o código de erro da API numa mensagem amigável (nunca mostra JSON cru). */
@@ -28,7 +30,7 @@ function friendlyError(code: string): string {
 
 const inputClass = "w-full rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200";
 
-export default function AuthPage({ onAuth, onBack, initialMode = "login" }: Props) {
+export default function AuthPage({ onAuth, onBack, initialMode = "login", marca = "" }: Props) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -39,6 +41,22 @@ export default function AuthPage({ onAuth, onBack, initialMode = "login" }: Prop
   const [name, setName] = useState("");
   const [orgName, setOrgName] = useState("");
   const [code, setCode] = useState("");
+
+  // white-label: se veio pelo link de um parceiro, veste a marca dele (logo/nome/cor/favicon)
+  const [brand, setBrand] = useState<{ brandName?: string; brandColor?: string; brandLogoUrl?: string }>({});
+  useEffect(() => {
+    if (!marca) return;
+    apiGet(`/public/branding/${marca}`)
+      .then((b) => {
+        setBrand(b || {});
+        if (b?.brandName) document.title = b.brandName;
+        if (b?.brandLogoUrl) {
+          const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
+          if (link) link.href = b.brandLogoUrl;
+        }
+      })
+      .catch(() => {});
+  }, [marca]);
 
   function go(m: Mode) {
     setMode(m);
@@ -57,7 +75,7 @@ export default function AuthPage({ onAuth, onBack, initialMode = "login" }: Prop
         saveAuth(data.token, data.user, data.orgId, data.role ?? "agent");
         onAuth();
       } else if (mode === "register") {
-        const data = await apiPost("/auth/register", { email, password, name, orgName });
+        const data = await apiPost("/auth/register", { email, password, name, orgName, marca: marca || undefined });
         saveAuth(data.token, data.user, data.orgId, data.role ?? "owner");
         onAuth();
       } else if (mode === "forgot") {
@@ -78,8 +96,9 @@ export default function AuthPage({ onAuth, onBack, initialMode = "login" }: Prop
     }
   }
 
+  const brandName = brand.brandName || "Solutions CRM";
   const title =
-    mode === "forgot" ? "Recuperar senha" : mode === "reset" ? "Redefinir senha" : "Solutions CRM";
+    mode === "forgot" ? "Recuperar senha" : mode === "reset" ? "Redefinir senha" : brandName;
   const cta =
     mode === "login" ? "Entrar" : mode === "register" ? "Criar conta" : mode === "forgot" ? "Enviar código" : "Redefinir senha";
 
@@ -92,7 +111,7 @@ export default function AuthPage({ onAuth, onBack, initialMode = "login" }: Prop
           <button onClick={onBack} className="mb-4 text-sm text-slate-500 hover:text-slate-800">← Voltar ao site</button>
         )}
         <div className="mb-6 flex items-center gap-2">
-          <img src="/logo.jpeg" alt="Solutions" className="h-10 w-10 rounded-2xl object-cover" />
+          <img src={brand.brandLogoUrl || "/logo.jpeg"} alt={brandName} className="h-10 w-10 rounded-2xl object-cover" />
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         </div>
 
@@ -184,6 +203,7 @@ export default function AuthPage({ onAuth, onBack, initialMode = "login" }: Prop
           <button
             type="submit"
             disabled={loading}
+            style={brand.brandColor ? { backgroundColor: brand.brandColor } : undefined}
             className="w-full rounded-2xl bg-slate-900 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
           >
             {loading ? "Aguarde…" : cta}
