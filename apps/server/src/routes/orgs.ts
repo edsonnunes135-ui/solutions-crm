@@ -38,11 +38,11 @@ orgsRouter.get("/orgs", async (req: AuthedRequest, res) => {
 orgsRouter.get("/reseller/clients", async (req: AuthedRequest, res) => {
   const clients = await prisma.organization.findMany({
     where: { resellerOrgId: req.user!.orgId },
-    select: { id: true, name: true, plan: true, createdAt: true, _count: { select: { users: true } } },
+    select: { id: true, name: true, plan: true, planLabel: true, createdAt: true, _count: { select: { users: true } } },
     orderBy: { createdAt: "desc" },
   });
   res.json(
-    clients.map((c) => ({ orgId: c.id, name: c.name, plan: c.plan, users: c._count.users, createdAt: c.createdAt }))
+    clients.map((c) => ({ orgId: c.id, name: c.name, plan: c.plan, planLabel: c.planLabel, users: c._count.users, createdAt: c.createdAt }))
   );
 });
 

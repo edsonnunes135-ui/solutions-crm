@@ -51,10 +51,40 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
   const myOrgId = getUser()?.orgId ?? "";
   const brandLink = typeof window !== "undefined" ? `${window.location.origin}/?marca=${myOrgId}` : "";
 
+  // Planos do parceiro (white-label Fase 2)
+  const [rplans, setRplans] = useState<any[]>([]);
+  const [newPlan, setNewPlan] = useState({ name: "", price: 0, users: 2, contacts: 1000, automations: 5, broadcast: false, ai: false });
+  const [planBusy, setPlanBusy] = useState(false);
+
   useEffect(() => {
     if (!isManager) return;
     apiGet("/reseller/clients", token).then(setClients).catch(() => {});
+    apiGet("/reseller/plans", token).then(setRplans).catch(() => {});
   }, [token, isManager]);
+
+  async function createPlan(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newPlan.name.trim() || planBusy) return;
+    setPlanBusy(true);
+    try {
+      await apiPost("/reseller/plans", { ...newPlan, price: Number(newPlan.price), users: Number(newPlan.users), contacts: Number(newPlan.contacts), automations: Number(newPlan.automations) }, token);
+      setNewPlan({ name: "", price: 0, users: 2, contacts: 1000, automations: 5, broadcast: false, ai: false });
+      setRplans(await apiGet("/reseller/plans", token));
+    } catch {
+      /* ignore */
+    } finally {
+      setPlanBusy(false);
+    }
+  }
+  async function deletePlan(id: string) {
+    if (!confirm("Remover este plano?")) return;
+    await apiDelete(`/reseller/plans/${id}`, token);
+    setRplans(await apiGet("/reseller/plans", token));
+  }
+  async function assignPlan(orgId: string, planId: string) {
+    await apiPost(`/reseller/clients/${orgId}/plan`, { planId: planId || null }, token);
+    setClients(await apiGet("/reseller/clients", token));
+  }
 
   // Plano
   const [billing, setBilling] = useState<any>(null);
@@ -430,13 +460,55 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
             </div>
 
             <div className="rounded-2xl border">
+              <div className="border-b px-3 py-2 text-sm font-medium text-slate-600">💼 Seus planos ({rplans.length})</div>
+              <div className="divide-y">
+                {rplans.length === 0 && <div className="px-3 py-3 text-center text-xs text-slate-400">Crie planos com a SUA marca e preço pra oferecer aos seus clientes.</div>}
+                {rplans.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                    <div>
+                      <div className="font-medium text-slate-800">{p.name} — <span className="text-emerald-700">R$ {p.price}/mês</span></div>
+                      <div className="text-xs text-slate-500">{p.users} usuário(s) · {Number(p.contacts).toLocaleString("pt-BR")} contatos{p.ai ? " · IA" : ""}{p.broadcast ? " · Campanhas" : ""}</div>
+                    </div>
+                    <button onClick={() => deletePlan(p.id)} className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Remover"><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                ))}
+              </div>
+              <form onSubmit={createPlan} className="space-y-2 border-t p-3">
+                <div className="text-xs font-medium text-slate-600">Novo plano</div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <input placeholder="Nome do plano" value={newPlan.name} onChange={(e) => setNewPlan((p) => ({ ...p, name: e.target.value }))} className="rounded-lg border px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-slate-200" />
+                  <input type="number" min={0} placeholder="Preço R$/mês" value={newPlan.price} onChange={(e) => setNewPlan((p) => ({ ...p, price: Number(e.target.value) }))} className="rounded-lg border px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-slate-200" />
+                  <input type="number" min={1} placeholder="Usuários" value={newPlan.users} onChange={(e) => setNewPlan((p) => ({ ...p, users: Number(e.target.value) }))} className="rounded-lg border px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-slate-200" />
+                  <input type="number" min={1} placeholder="Contatos" value={newPlan.contacts} onChange={(e) => setNewPlan((p) => ({ ...p, contacts: Number(e.target.value) }))} className="rounded-lg border px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-slate-200" />
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                  <label className="flex items-center gap-1"><input type="checkbox" checked={newPlan.ai} onChange={(e) => setNewPlan((p) => ({ ...p, ai: e.target.checked }))} /> IA</label>
+                  <label className="flex items-center gap-1"><input type="checkbox" checked={newPlan.broadcast} onChange={(e) => setNewPlan((p) => ({ ...p, broadcast: e.target.checked }))} /> Campanhas em massa</label>
+                  <button type="submit" disabled={planBusy || !newPlan.name.trim()} className="ml-auto rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50">Criar plano</button>
+                </div>
+              </form>
+            </div>
+
+            <div className="rounded-2xl border">
               <div className="border-b px-3 py-2 text-sm font-medium text-slate-600">Seus clientes pelo link ({clients.length})</div>
               <div className="divide-y">
                 {clients.length === 0 && <div className="px-3 py-4 text-center text-xs text-slate-400">Nenhum cliente pelo seu link ainda. Compartilhe o link acima.</div>}
                 {clients.map((c) => (
-                  <div key={c.orgId} className="px-3 py-2 text-sm">
-                    <div className="font-medium text-slate-800">{c.name}</div>
-                    <div className="text-xs text-slate-500">Plano: {c.plan} · {c.users} acesso(s) · desde {new Date(c.createdAt).toLocaleDateString("pt-BR")}</div>
+                  <div key={c.orgId} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                    <div>
+                      <div className="font-medium text-slate-800">{c.name}</div>
+                      <div className="text-xs text-slate-500">{c.planLabel || c.plan} · {c.users} acesso(s) · desde {new Date(c.createdAt).toLocaleDateString("pt-BR")}</div>
+                    </div>
+                    <select
+                      value=""
+                      onChange={(e) => assignPlan(c.orgId, e.target.value === "__none" ? "" : e.target.value)}
+                      className="rounded-lg border px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-slate-200"
+                      title="Atribuir um plano a este cliente"
+                    >
+                      <option value="">Atribuir plano…</option>
+                      {rplans.map((p) => <option key={p.id} value={p.id}>{p.name} — R$ {p.price}/mês</option>)}
+                      <option value="__none">↩︎ Voltar ao teste grátis</option>
+                    </select>
                   </div>
                 ))}
               </div>

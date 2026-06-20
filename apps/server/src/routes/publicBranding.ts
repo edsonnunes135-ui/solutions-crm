@@ -16,3 +16,13 @@ publicRouter.get("/public/branding/:orgId", async (req, res) => {
     brandLogoUrl: s?.brandLogoUrl ?? "",
   });
 });
+
+// Planos públicos de um parceiro (white-label) — o cliente vê na hora de assinar
+publicRouter.get("/public/plans/:resellerOrgId", async (req, res) => {
+  const plans = await prisma.resellerPlan.findMany({
+    where: { resellerOrgId: String(req.params.resellerOrgId), active: true },
+    orderBy: [{ order: "asc" }, { price: "asc" }],
+    select: { id: true, name: true, price: true, users: true, contacts: true, broadcast: true, ai: true },
+  });
+  res.json(plans);
+});

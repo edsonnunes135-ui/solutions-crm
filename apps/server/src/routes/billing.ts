@@ -16,7 +16,22 @@ export const PLANS: Record<string, { name: string; price: number; users: number;
 
 /** Retorna o plano (com limites) de uma organização. Usado para travar recursos por plano. */
 export async function planForOrg(orgId: string) {
-  const org = await prisma.organization.findUnique({ where: { id: orgId }, select: { plan: true } });
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { plan: true, planLabel: true, planPrice: true, maxUsers: true, maxContacts: true, maxAutomations: true, featBroadcast: true, featAi: true },
+  });
+  // white-label: se o parceiro atribuiu um plano custom a este cliente, usa os limites dele
+  if (org && org.maxUsers != null) {
+    return {
+      name: org.planLabel ?? "Plano",
+      price: org.planPrice ?? 0,
+      users: org.maxUsers,
+      contacts: org.maxContacts ?? 1000,
+      automations: org.maxAutomations ?? 5,
+      broadcast: !!org.featBroadcast,
+      ai: !!org.featAi,
+    };
+  }
   return PLANS[org?.plan ?? "trial"] ?? PLANS.trial;
 }
 

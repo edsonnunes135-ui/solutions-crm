@@ -31,6 +31,14 @@ model Organization {
   plan          String    @default("trial") // trial/starter/pro/business
   trialEndsAt   DateTime?
   resellerOrgId String? // white-label: empresa-parceira (revenda) que trouxe este cliente
+  // white-label: plano do parceiro atribuído a este cliente (override do PLANS estático)
+  planLabel      String?
+  planPrice      Int?
+  maxUsers       Int?
+  maxContacts    Int?
+  maxAutomations Int?
+  featBroadcast  Boolean?
+  featAi         Boolean?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -68,6 +76,24 @@ model User {
   memberships Membership[]
   ownedDeals  Deal[]       @relation("DealOwner")
   tasks       Task[]       @relation("TaskAssignee")
+}
+
+// White-label: planos que um parceiro (revenda) cria para os clientes dele
+model ResellerPlan {
+  id            String   @id @default(cuid())
+  resellerOrgId String
+  name          String
+  price         Int      @default(0) // preço mensal (R$) que o cliente paga ao parceiro
+  users         Int      @default(2)
+  contacts      Int      @default(1000)
+  automations   Int      @default(5)
+  broadcast     Boolean  @default(false)
+  ai            Boolean  @default(false)
+  active        Boolean  @default(true)
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([resellerOrgId])
 }
 
 // Canais de comunicação ao vivo: "team" (gestor↔vendedores da empresa) e
