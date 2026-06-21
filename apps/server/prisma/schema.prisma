@@ -342,6 +342,11 @@ model OrgSetting {
   brandName             String? // white-label: nome exibido no app
   brandColor            String? // white-label: cor de destaque (hex)
   brandLogoUrl          String? // white-label: URL do logo
+  // white-label split: conta Mercado Pago do parceiro (revenda) — via OAuth
+  mpAccessToken         String?
+  mpRefreshToken        String?
+  mpUserId              String?
+  mpConnectedAt         DateTime?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

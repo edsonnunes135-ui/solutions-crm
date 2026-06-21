@@ -56,11 +56,27 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
   const [newPlan, setNewPlan] = useState({ name: "", price: 0, users: 2, contacts: 1000, automations: 5, broadcast: false, ai: false });
   const [planBusy, setPlanBusy] = useState(false);
 
+  const [mpStatus, setMpStatus] = useState<any>(null);
   useEffect(() => {
     if (!isManager) return;
     apiGet("/reseller/clients", token).then(setClients).catch(() => {});
     apiGet("/reseller/plans", token).then(setRplans).catch(() => {});
+    apiGet("/reseller/mp/status", token).then(setMpStatus).catch(() => {});
   }, [token, isManager]);
+
+  async function connectMp() {
+    try {
+      const r = await apiGet("/reseller/mp/connect-url", token);
+      if (r?.url) window.location.href = r.url;
+    } catch {
+      alert("A divisão de pagamento ainda não foi ativada na plataforma (falta configurar o Mercado Pago no servidor).");
+    }
+  }
+  async function disconnectMp() {
+    if (!confirm("Desconectar sua conta Mercado Pago? Os clientes deixam de poder pagar você por aqui.")) return;
+    await apiDelete("/reseller/mp", token);
+    setMpStatus(await apiGet("/reseller/mp/status", token));
+  }
 
   async function createPlan(e: React.FormEvent) {
     e.preventDefault();
@@ -457,6 +473,23 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
                 </button>
               </div>
               <div className="mt-2 text-[11px] text-slate-400">Dica: configure sua marca na aba <strong>Marca</strong> (logo, nome e cor) antes de divulgar.</div>
+            </div>
+
+            <div className="rounded-2xl border bg-white p-3">
+              <div className="text-sm font-medium text-slate-700">💳 Pagamentos (Mercado Pago)</div>
+              {!mpStatus?.configured ? (
+                <div className="mt-1 text-xs text-slate-500">A divisão de pagamento ainda não foi ativada na plataforma. Em breve.</div>
+              ) : mpStatus?.connected ? (
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs text-emerald-700">✅ Conta conectada. Você recebe os pagamentos dos seus clientes; a Solutions fica com {mpStatus.feePercent}% de comissão.</div>
+                  <button onClick={disconnectMp} className="rounded-lg border px-3 py-1.5 text-xs text-red-600 hover:bg-red-50">Desconectar</button>
+                </div>
+              ) : (
+                <>
+                  <div className="mt-1 text-xs text-slate-500">Conecte sua conta Mercado Pago para receber os pagamentos dos seus clientes automaticamente. A Solutions fica com {mpStatus.feePercent}% por venda.</div>
+                  <button onClick={connectMp} className="mt-2 rounded-xl px-3 py-2 text-xs font-medium text-white hover:opacity-90" style={{ backgroundColor: "#009ee3" }}>Conectar Mercado Pago</button>
+                </>
+              )}
             </div>
 
             <div className="rounded-2xl border">
