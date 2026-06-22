@@ -225,7 +225,7 @@ export default function FlowsView({ token }: { token: string }) {
       )}
 
       <div className="rounded-2xl border bg-sky-50/50 p-3 text-xs text-slate-500">
-        💡 Os fluxos guiam o atendimento da IA. A execução ao vivo no WhatsApp/Instagram é ligada junto com o Agente de IA (precisa da chave da IA configurada).
+        💡 Os fluxos rodam sozinhos: quando o cliente manda uma palavra-gatilho no WhatsApp ou Instagram, o fluxo responde na hora (não precisa da chave da IA). Deixe os gatilhos vazios para um fluxo de boas-vindas na primeira mensagem do cliente.
       </div>
     </div>
   );

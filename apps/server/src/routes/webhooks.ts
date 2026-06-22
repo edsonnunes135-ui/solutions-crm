@@ -4,6 +4,7 @@ import { enqueueEvent } from "../lib/queue";
 import { pushToOrg } from "../lib/push";
 import { aiEnabled, agentReply, scoreLead } from "../lib/ai";
 import { sendChannelMessage } from "../lib/send";
+import { runMatchingFlow } from "../lib/flows";
 import { planForOrg } from "./billing";
 import {
   normalizeMetaWebhook,
@@ -113,6 +114,24 @@ webhooksRouter.post("/webhooks/meta", async (req, res) => {
       url: "/",
     }).catch(() => {});
 
+    // Fluxos no-code (determinístico — funciona SEM a chave da IA).
+    // Se um fluxo casar com a mensagem e responder, ele tem prioridade sobre o agente.
+    let flowFired = false;
+    try {
+      const inboundCount = await prisma.message.count({ where: { orgId, conversationId: conv.id, direction: "inbound" } });
+      flowFired = await runMatchingFlow({
+        orgId,
+        conversationId: conv.id,
+        contactId: contact.id,
+        contactName: contact.name,
+        channel: m.channel,
+        text: m.text ?? "",
+        isFirstInbound: inboundCount <= 1,
+      });
+    } catch {
+      // fluxos são best-effort; nunca quebram o webhook
+    }
+
     // IA: pontuação automática do lead + agente autônomo (se ativados e plano permite)
     try {
       const plan = await planForOrg(orgId);
@@ -145,7 +164,7 @@ webhooksRouter.post("/webhooks/meta", async (req, res) => {
 
         // 2) agente autônomo responde — só se ativado e nenhum humano assumiu a conversa
         const humanHandling = !!(conv as any).assigneeId || ((conv as any).status && (conv as any).status !== "open");
-        if (setting?.aiAutoReply && !humanHandling) {
+        if (setting?.aiAutoReply && !humanHandling && !flowFired) {
           const a = await agentReply({
             messages: history,
             contactName: contact.name,
