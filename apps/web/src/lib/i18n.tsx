@@ -72,7 +72,8 @@ export function LanguageSelector({ variant = "dark" }: { variant?: "dark" | "lig
 
 export interface LandingContent {
   nav: { features: string; ai: string; plans: string; faq: string; login: string; tryFree: string };
-  hero: { badge: string; title1: string; title2: string; subtitle: string; cta: string; haveAccount: string; noCard: string };
+  hero: { badge: string; title1: string; title2: string; subtitle: string; cta: string; ctaSecondary: string; haveAccount: string; noCard: string };
+  whitelabel: { badge: string; title: string; subtitle: string; bullets: string[]; cta: string };
   stats: { aiDaily: string; channels: string; freeDays: string; daysSuffix: string; setup: string; toTest: string };
   features: { title: string; subtitle: string; cards: { title: string; desc: string }[] };
   ai: { badge: string; title: string; subtitle: string; bullets: string[]; cta: string; demoTitle: string; demoStatus: string; demoFooter: string; chat: { from: "client" | "ai"; text: string }[] };
@@ -80,6 +81,7 @@ export interface LandingContent {
   integrationsLabel: string;
   plans: {
     title: string; subtitle: string; monthly: string; annual: string; save: string; popular: string;
+    currency: string; prices: { starter: number; pro: number; business: number };
     perUserMonth: string; billedYear: string; startFree: string; securePay: string;
     compareTitle: string; featureCol: string; items: { starter: string[]; pro: string[]; business: string[] }; rows: { label: string; values: (string | boolean)[] }[];
   };
@@ -91,10 +93,22 @@ export interface LandingContent {
 const pt: LandingContent = {
   nav: { features: "Recursos", ai: "IA ao vivo", plans: "Planos", faq: "Dúvidas", login: "Entrar", tryFree: "Teste grátis" },
   hero: {
-    badge: "CRM conversacional com Inteligência Artificial",
-    title1: "Transforme conversas", title2: "em vendas no automático",
-    subtitle: "WhatsApp e Instagram em um só lugar, funil visual e uma IA que responde sozinha, qualifica leads e fecha mais negócios. Tudo no Solutions.",
-    cta: "Começar teste grátis de 14 dias", haveAccount: "Já tenho conta", noCard: "Sem cartão para testar",
+    badge: "Plataforma white-label de CRM com IA",
+    title1: "Tenha o seu próprio CRM com IA,", title2: "com a sua marca",
+    subtitle: "Revenda um CRM completo (WhatsApp, Instagram e uma IA que vende sozinha) com o seu logo, as suas cores e os seus preços. Ou use para a sua própria empresa. Você no controle.",
+    cta: "Começar teste grátis de 14 dias", ctaSecondary: "Quero revender com a minha marca", haveAccount: "Já tenho conta", noCard: "Sem cartão para testar",
+  },
+  whitelabel: {
+    badge: "White-label / Revenda",
+    title: "Venda o seu CRM, com a sua cara",
+    subtitle: "A Solutions fica invisível. Seu cliente vê só a SUA marca: logo, cores, nome e domínio. Você define os planos e os preços, recebe direto na sua conta, e a Solutions cobra só uma taxa fixa da plataforma.",
+    bullets: [
+      "Sua marca de ponta a ponta: logo, cores e nome no app inteiro",
+      "Você cria os planos e os preços que quiser",
+      "Recebe as assinaturas dos seus clientes direto na sua conta",
+      "A Solutions cobra uma taxa fixa da plataforma. O resto é seu.",
+    ],
+    cta: "Quero a minha marca",
   },
   stats: { aiDaily: "IA atendendo, todo dia", channels: "canais num só lugar", freeDays: "grátis para testar", daysSuffix: " dias", setup: "para configurar", toTest: "grátis para testar" },
   features: {
@@ -140,6 +154,7 @@ const pt: LandingContent = {
     title: "Planos que cabem no seu negócio",
     subtitle: "Por usuário/mês. Cancele quando quiser. 14 dias grátis em qualquer plano.",
     monthly: "Mensal", annual: "Anual", save: "economize 20%", popular: "Mais popular",
+    currency: "R$", prices: { starter: 49, pro: 99, business: 197 },
     perUserMonth: "/usuário/mês", billedYear: "cobrado R$ {v}/ano por usuário", startFree: "Começar grátis",
     securePay: "Pagamento seguro via Mercado Pago (cartão ou Pix). Renovação automática, cancele a qualquer momento.",
     compareTitle: "Compare os planos em detalhe", featureCol: "Recurso",
@@ -181,10 +196,22 @@ const pt: LandingContent = {
 const en: LandingContent = {
   nav: { features: "Features", ai: "Live AI", plans: "Pricing", faq: "FAQ", login: "Log in", tryFree: "Free trial" },
   hero: {
-    badge: "Conversational CRM powered by Artificial Intelligence",
-    title1: "Turn conversations", title2: "into sales on autopilot",
-    subtitle: "WhatsApp and Instagram in one place, a visual pipeline and an AI that replies on its own, qualifies leads and closes more deals. All in Solutions.",
-    cta: "Start your 14-day free trial", haveAccount: "I already have an account", noCard: "No card required to try",
+    badge: "White-label AI CRM platform",
+    title1: "Have your own AI CRM,", title2: "under your brand",
+    subtitle: "Resell a complete CRM (WhatsApp, Instagram and an AI that sells on its own) with your logo, your colors and your prices. Or use it for your own company. You're in control.",
+    cta: "Start your 14-day free trial", ctaSecondary: "I want to resell under my brand", haveAccount: "I already have an account", noCard: "No card required to try",
+  },
+  whitelabel: {
+    badge: "White-label / Reseller",
+    title: "Sell your own CRM, with your face on it",
+    subtitle: "Solutions stays invisible. Your client sees only YOUR brand: logo, colors, name and domain. You set the plans and prices, get paid directly into your account, and Solutions only charges a fixed platform fee.",
+    bullets: [
+      "Your brand end to end: logo, colors and name across the whole app",
+      "You create the plans and prices you want",
+      "Receive your clients' subscriptions directly in your account",
+      "Solutions charges a fixed platform fee. The rest is yours.",
+    ],
+    cta: "I want my own brand",
   },
   stats: { aiDaily: "AI answering, every day", channels: "channels in one place", freeDays: "free to try", daysSuffix: " days", setup: "to set up", toTest: "free to try" },
   features: {
@@ -230,8 +257,9 @@ const en: LandingContent = {
     title: "Plans that fit your business",
     subtitle: "Per user/month. Cancel anytime. 14 days free on any plan.",
     monthly: "Monthly", annual: "Annual", save: "save 20%", popular: "Most popular",
-    perUserMonth: "/user/month", billedYear: "billed R$ {v}/year per user", startFree: "Start free",
-    securePay: "Secure payment via Mercado Pago (card or Pix). Auto-renewal, cancel anytime.",
+    currency: "$", prices: { starter: 19, pro: 39, business: 79 },
+    perUserMonth: "/user/month", billedYear: "billed ${v}/year per user", startFree: "Start free",
+    securePay: "Secure card payment. Auto-renewal, cancel anytime.",
     compareTitle: "Compare plans in detail", featureCol: "Feature",
     items: {
       starter: ["2 users", "1,000 contacts", "WhatsApp + Instagram", "Pipeline and tasks", "5 automations"],
@@ -271,10 +299,22 @@ const en: LandingContent = {
 const es: LandingContent = {
   nav: { features: "Recursos", ai: "IA en vivo", plans: "Precios", faq: "Preguntas", login: "Entrar", tryFree: "Prueba gratis" },
   hero: {
-    badge: "CRM conversacional con Inteligencia Artificial",
-    title1: "Convierte conversaciones", title2: "en ventas en automático",
-    subtitle: "WhatsApp e Instagram en un solo lugar, un embudo visual y una IA que responde sola, califica leads y cierra más negocios. Todo en Solutions.",
-    cta: "Comenzar prueba gratis de 14 días", haveAccount: "Ya tengo cuenta", noCard: "Sin tarjeta para probar",
+    badge: "Plataforma white-label de CRM con IA",
+    title1: "Ten tu propio CRM con IA,", title2: "con tu marca",
+    subtitle: "Revende un CRM completo (WhatsApp, Instagram y una IA que vende sola) con tu logo, tus colores y tus precios. O úsalo para tu propia empresa. Tú tienes el control.",
+    cta: "Comenzar prueba gratis de 14 días", ctaSecondary: "Quiero revender con mi marca", haveAccount: "Ya tengo cuenta", noCard: "Sin tarjeta para probar",
+  },
+  whitelabel: {
+    badge: "White-label / Reventa",
+    title: "Vende tu propio CRM, con tu cara",
+    subtitle: "Solutions queda invisible. Tu cliente ve solo TU marca: logo, colores, nombre y dominio. Tú defines los planes y los precios, cobras directo en tu cuenta, y Solutions solo cobra una tarifa fija de plataforma.",
+    bullets: [
+      "Tu marca de punta a punta: logo, colores y nombre en toda la app",
+      "Tú creas los planes y los precios que quieras",
+      "Recibe las suscripciones de tus clientes directo en tu cuenta",
+      "Solutions cobra una tarifa fija de plataforma. El resto es tuyo.",
+    ],
+    cta: "Quiero mi propia marca",
   },
   stats: { aiDaily: "IA atendiendo, todos los días", channels: "canales en un solo lugar", freeDays: "gratis para probar", daysSuffix: " días", setup: "para configurar", toTest: "gratis para probar" },
   features: {
@@ -320,8 +360,9 @@ const es: LandingContent = {
     title: "Planes que se adaptan a tu negocio",
     subtitle: "Por usuario/mes. Cancela cuando quieras. 14 días gratis en cualquier plan.",
     monthly: "Mensual", annual: "Anual", save: "ahorra 20%", popular: "Más popular",
-    perUserMonth: "/usuario/mes", billedYear: "facturado R$ {v}/año por usuario", startFree: "Comenzar gratis",
-    securePay: "Pago seguro vía Mercado Pago (tarjeta o Pix). Renovación automática, cancela cuando quieras.",
+    currency: "$", prices: { starter: 19, pro: 39, business: 79 },
+    perUserMonth: "/usuario/mes", billedYear: "facturado ${v}/año por usuario", startFree: "Comenzar gratis",
+    securePay: "Pago seguro con tarjeta. Renovación automática, cancela cuando quieras.",
     compareTitle: "Compara los planes en detalle", featureCol: "Recurso",
     items: {
       starter: ["2 usuarios", "1.000 contactos", "WhatsApp + Instagram", "Embudo y tareas", "5 automatizaciones"],

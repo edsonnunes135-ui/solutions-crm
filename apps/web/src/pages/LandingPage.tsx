@@ -200,9 +200,9 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
   const stepIcons = [<Rocket className="h-5 w-5" />, <Phone className="h-5 w-5" />, <Bot className="h-5 w-5" />];
 
   const planMeta = [
-    { key: "starter" as const, name: "Starter", price: 49, featured: false },
-    { key: "pro" as const, name: "Pro", price: 99, featured: true },
-    { key: "business" as const, name: "Business", price: 197, featured: false },
+    { key: "starter" as const, name: "Starter", featured: false },
+    { key: "pro" as const, name: "Pro", featured: true },
+    { key: "business" as const, name: "Business", featured: false },
   ];
   const priceOf = (base: number) => (annual ? Math.round(base * 0.8) : base);
 
@@ -261,7 +261,7 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
           <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-300">{L.hero.subtitle}</p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <button onClick={onSignup} className="rounded-2xl bg-sky-500 px-6 py-3 font-medium shadow-lg shadow-sky-500/20 transition hover:-translate-y-0.5 hover:bg-sky-400">{L.hero.cta}</button>
-            <button onClick={onEnter} className="rounded-2xl border border-white/20 px-6 py-3 font-medium hover:bg-white/10">{L.hero.haveAccount}</button>
+            <a href="#whitelabel" className="rounded-2xl border border-white/20 px-6 py-3 font-medium hover:bg-white/10">{L.hero.ctaSecondary}</a>
           </div>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400">
             <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5 text-emerald-400" /> {L.hero.noCard}</span>
@@ -279,6 +279,29 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
                 <div className="mt-1 text-xs text-slate-300">{s.label}</div>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* WHITE-LABEL / REVENDA — proposta principal */}
+        <section id="whitelabel" className="border-y border-white/10 bg-gradient-to-b from-sky-500/10 to-transparent py-20">
+          <div className="mx-auto max-w-5xl px-4">
+            <div className="text-center">
+              <div className="mb-3 inline-flex items-center gap-1 rounded-full border border-sky-400/30 bg-sky-500/10 px-3 py-1 text-xs text-sky-200">
+                <Sparkles className="h-3.5 w-3.5" /> {L.whitelabel.badge}
+              </div>
+              <h2 className="text-3xl font-bold md:text-4xl">{L.whitelabel.title}</h2>
+              <p className="mx-auto mt-3 max-w-2xl text-slate-300">{L.whitelabel.subtitle}</p>
+            </div>
+            <div className="mx-auto mt-8 grid max-w-3xl gap-3 sm:grid-cols-2">
+              {L.whitelabel.bullets.map((b, i) => (
+                <div key={i} className="flex items-start gap-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 backdrop-blur">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" /> {b}
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 text-center">
+              <button onClick={onSignup} className="rounded-2xl bg-sky-500 px-6 py-3 font-medium shadow-lg shadow-sky-500/20 transition hover:-translate-y-0.5 hover:bg-sky-400">{L.whitelabel.cta}</button>
+            </div>
           </div>
         </section>
 
@@ -373,9 +396,9 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
                   <div className="text-lg font-semibold">{p.name}</div>
                   {p.featured && <span className="rounded-full bg-sky-500 px-2 py-0.5 text-xs">{L.plans.popular}</span>}
                 </div>
-                <div className="mt-3 text-3xl font-bold">R$ {priceOf(p.price)}<span className="text-sm font-normal text-slate-400">{L.plans.perUserMonth}</span></div>
+                <div className="mt-3 text-3xl font-bold">{L.plans.currency} {priceOf(L.plans.prices[p.key])}<span className="text-sm font-normal text-slate-400">{L.plans.perUserMonth}</span></div>
                 <div className="mt-1 h-4 text-xs text-emerald-300">
-                  {annual ? L.plans.billedYear.replace("{v}", String(priceOf(p.price) * 12)) : ""}
+                  {annual ? L.plans.billedYear.replace("{v}", String(priceOf(L.plans.prices[p.key]) * 12)) : ""}
                 </div>
                 <ul className="mt-4 space-y-2 text-sm text-slate-200">
                   {L.plans.items[p.key].map((it) => (
