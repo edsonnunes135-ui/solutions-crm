@@ -28,6 +28,7 @@ const STEP_META = {
 export default function FlowsView({ token }: { token: string }) {
   const [flows, setFlows] = useState<Flow[]>([]);
   const [editing, setEditing] = useState<Flow | null>(null);
+  const [triggersText, setTriggersText] = useState(""); // texto livre; só vira lista ao salvar
   const [busy, setBusy] = useState(false);
 
   async function load() {
@@ -36,14 +37,20 @@ export default function FlowsView({ token }: { token: string }) {
   }
   useEffect(() => { load(); }, [token]);
 
+  function startEdit(f: Flow) {
+    setEditing(f);
+    setTriggersText((f.triggers || []).join(", "));
+  }
   function newFlow() {
     setEditing({ id: "", name: "Novo fluxo", active: true, triggers: [], steps: [{ type: "message", text: "" }] });
+    setTriggersText("");
   }
 
   async function save() {
     if (!editing || busy) return;
     setBusy(true);
-    const body = { name: editing.name, active: editing.active, triggers: editing.triggers, steps: editing.steps };
+    const triggers = triggersText.split(",").map((t) => t.trim()).filter(Boolean);
+    const body = { name: editing.name, active: editing.active, triggers, steps: editing.steps };
     try {
       if (editing.id) await apiPut(`/flows/${editing.id}`, body, token);
       else await apiPost("/flows", body, token);
@@ -113,8 +120,8 @@ export default function FlowsView({ token }: { token: string }) {
           <div className="mt-2 text-sm font-medium text-slate-700">Gatilhos (quando ativar)</div>
           <div className="text-xs text-slate-500">Palavras ou frases que ligam o fluxo. Separe por vírgula. Deixe vazio para o fluxo de boas-vindas.</div>
           <input
-            value={editing.triggers.join(", ")}
-            onChange={(e) => setEditing({ ...editing, triggers: e.target.value.split(",").map((t) => t.trim()).filter(Boolean) })}
+            value={triggersText}
+            onChange={(e) => setTriggersText(e.target.value)}
             placeholder="preço, valor, quanto custa"
             className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200"
           />
@@ -215,7 +222,7 @@ export default function FlowsView({ token }: { token: string }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setEditing(f)} className="rounded-lg p-1.5 text-slate-400 hover:bg-sky-50 hover:text-sky-600" title="Editar"><Pencil className="h-4 w-4" /></button>
+                  <button onClick={() => startEdit(f)} className="rounded-lg p-1.5 text-slate-400 hover:bg-sky-50 hover:text-sky-600" title="Editar"><Pencil className="h-4 w-4" /></button>
                   <button onClick={() => removeFlow(f.id)} className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Excluir"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>
