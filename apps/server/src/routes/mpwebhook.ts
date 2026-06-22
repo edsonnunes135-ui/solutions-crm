@@ -30,7 +30,21 @@ mpWebhookRouter.post("/webhooks/mercadopago", async (req, res) => {
     if (!r.ok) return;
     const sub: any = await r.json();
 
-    const [orgId, planKey] = String(sub.external_reference || "").split(":");
+    const ref = String(sub.external_reference || "");
+
+    // White-label atacado: taxa da plataforma que o PARCEIRO paga à Solutions.
+    if (ref.startsWith("platformfee:")) {
+      const resellerOrgId = ref.slice("platformfee:".length);
+      if (resellerOrgId) {
+        await prisma.orgSetting.updateMany({ where: { orgId: resellerOrgId }, data: { platformFeeStatus: sub.status } });
+        await prisma.event.create({
+          data: { orgId: resellerOrgId, type: "mp_platform_fee", processed: true, payload: { subscriptionId: String(id), status: sub.status } },
+        }).catch(() => {});
+      }
+      return;
+    }
+
+    const [orgId, planKey] = ref.split(":");
     if (!orgId || !planKey || !PLANS[planKey]) return;
 
     // authorized = assinatura ativa; cancelled/paused = volta ao gratuito

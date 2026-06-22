@@ -57,11 +57,13 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
   const [planBusy, setPlanBusy] = useState(false);
 
   const [mpStatus, setMpStatus] = useState<any>(null);
+  const [feeStatus, setFeeStatus] = useState<any>(null);
   useEffect(() => {
     if (!isManager) return;
     apiGet("/reseller/clients", token).then(setClients).catch(() => {});
     apiGet("/reseller/plans", token).then(setRplans).catch(() => {});
     apiGet("/reseller/mp/status", token).then(setMpStatus).catch(() => {});
+    apiGet("/reseller/platform-fee/status", token).then(setFeeStatus).catch(() => {});
   }, [token, isManager]);
 
   async function connectMp() {
@@ -76,6 +78,17 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
     if (!confirm("Desconectar sua conta Mercado Pago? Os clientes deixam de poder pagar você por aqui.")) return;
     await apiDelete("/reseller/mp", token);
     setMpStatus(await apiGet("/reseller/mp/status", token));
+  }
+  async function subscribeFee() {
+    try {
+      const r = await apiPost("/reseller/platform-fee/subscribe", {}, token);
+      if (r?.checkoutUrl) { window.location.href = r.checkoutUrl; return; }
+    } catch (err: any) {
+      const m = String(err?.message ?? "");
+      if (m.includes("no_paying_clients")) alert("Você ainda não tem clientes em planos pagos. Atribua um plano pago a um cliente antes de autorizar a taxa.");
+      else if (m.includes("platform_mp_not_configured")) alert("A taxa da plataforma ainda não foi ativada no servidor.");
+      else alert("Não foi possível iniciar a autorização. Tente novamente.");
+    }
   }
 
   async function createPlan(e: React.FormEvent) {
@@ -155,6 +168,23 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
       setPlanMsg(`Plano ${planName} ativado! 🎉`);
     } catch (err: any) {
       setPlanMsg(`Erro: ${err.message}`);
+    }
+  }
+
+  // White-label: cliente do parceiro assina um plano DO PARCEIRO (assinatura mensal recorrente)
+  async function chooseResellerPlan(planId: string) {
+    setPlanMsg("");
+    try {
+      const r = await apiPost("/billing/checkout-reseller", { planId }, token);
+      if (r.checkoutUrl) {
+        setPlanMsg("Redirecionando para o pagamento seguro…");
+        window.location.href = r.checkoutUrl;
+        return;
+      }
+    } catch (err: any) {
+      const m = String(err?.message ?? "");
+      if (m.includes("reseller_mp_not_connected")) setPlanMsg("O pagamento ainda não foi ativado pelo seu fornecedor. Fale com ele para liberar a assinatura.");
+      else setPlanMsg(`Erro: ${m}`);
     }
   }
 
@@ -334,7 +364,37 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           )}
         </div>
         <div className="p-4 pt-0">
-          {billing && (
+          {/* Cliente de revenda assina os planos DO PARCEIRO; os demais, os planos da plataforma */}
+          {billing && billing.resellerOrgId ? (
+            billing.resellerPlans && billing.resellerPlans.length > 0 ? (
+              <div className="grid gap-3 md:grid-cols-3">
+                {billing.resellerPlans.map((p: any) => {
+                  const isCurrent = billing.planName === p.name;
+                  return (
+                    <div key={p.id} className="rounded-2xl border p-4">
+                      <div className="font-semibold">{p.name}</div>
+                      <div className="mt-2 text-2xl font-bold">R$ {p.price}<span className="text-sm font-normal text-slate-500">/mês</span></div>
+                      <ul className="mt-3 space-y-1 text-sm text-slate-600">
+                        <li>• {p.users >= 999 ? "Usuários ilimitados" : `Até ${p.users} usuários`}</li>
+                        <li>• {p.contacts >= 100000 ? "Contatos ilimitados" : `${Number(p.contacts).toLocaleString("pt-BR")} contatos`}</li>
+                        <li>{p.ai ? "✅ Inteligência artificial" : "❌ Sem IA"}</li>
+                        <li>{p.broadcast ? "✅ Campanhas em massa" : "❌ Sem campanhas em massa"}</li>
+                      </ul>
+                      <button
+                        onClick={() => chooseResellerPlan(p.id)}
+                        disabled={isCurrent}
+                        className={`mt-4 w-full rounded-2xl py-2 text-sm font-medium transition ${isCurrent ? "bg-slate-100 text-slate-400" : "bg-slate-900 text-white hover:bg-slate-800"}`}
+                      >
+                        {isCurrent ? "Plano atual" : "Assinar"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-2xl border p-4 text-sm text-slate-500">Seu fornecedor ainda não publicou planos. Em breve.</div>
+            )
+          ) : billing && (
             <div className="grid gap-3 md:grid-cols-3">
               {billing.plans.map((p: any) => {
                 const isCurrent = billing.plan === p.key;
@@ -478,19 +538,46 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
             <div className="rounded-2xl border bg-white p-3">
               <div className="text-sm font-medium text-slate-700">💳 Pagamentos (Mercado Pago)</div>
               {!mpStatus?.configured ? (
-                <div className="mt-1 text-xs text-slate-500">A divisão de pagamento ainda não foi ativada na plataforma. Em breve.</div>
+                <div className="mt-1 text-xs text-slate-500">A cobrança ainda não foi ativada na plataforma. Em breve.</div>
               ) : mpStatus?.connected ? (
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-xs text-emerald-700">✅ Conta conectada. Você recebe os pagamentos dos seus clientes; a Solutions fica com {mpStatus.feePercent}% de comissão.</div>
+                  <div className="text-xs text-emerald-700">✅ Conta conectada. Seus clientes assinam e pagam <strong>você</strong> todo mês (assinatura recorrente). A taxa da Solutions é cobrada à parte (card abaixo).</div>
                   <button onClick={disconnectMp} className="rounded-lg border px-3 py-1.5 text-xs text-red-600 hover:bg-red-50">Desconectar</button>
                 </div>
               ) : (
                 <>
-                  <div className="mt-1 text-xs text-slate-500">Conecte sua conta Mercado Pago para receber os pagamentos dos seus clientes automaticamente. A Solutions fica com {mpStatus.feePercent}% por venda.</div>
+                  <div className="mt-1 text-xs text-slate-500">Conecte sua conta Mercado Pago para receber as <strong>assinaturas mensais</strong> dos seus clientes automaticamente, na sua própria conta.</div>
                   <button onClick={connectMp} className="mt-2 rounded-xl px-3 py-2 text-xs font-medium text-white hover:opacity-90" style={{ backgroundColor: "#009ee3" }}>Conectar Mercado Pago</button>
                 </>
               )}
             </div>
+
+            {feeStatus?.configured && (
+              <div className="rounded-2xl border bg-white p-3">
+                <div className="text-sm font-medium text-slate-700">🏦 Taxa da plataforma (Solutions)</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Seus clientes pagam <strong>você</strong> 100% (assinatura mensal). A Solutions cobra <strong>{feeStatus.feePercent}%</strong> da sua receita como taxa da plataforma — cobrança mensal automática no seu Mercado Pago.
+                </div>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs text-slate-600">
+                    Comissão deste mês: <strong className="text-slate-900">R$ {feeStatus.amount}</strong>
+                    <span className="text-slate-400"> ({feeStatus.feePercent}% da receita dos seus clientes)</span>
+                  </div>
+                  {feeStatus.status === "authorized" ? (
+                    <span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">✅ Autorizada</span>
+                  ) : feeStatus.amount > 0 ? (
+                    <button onClick={subscribeFee} className="rounded-xl px-3 py-2 text-xs font-medium text-white hover:opacity-90" style={{ backgroundColor: "#009ee3" }}>
+                      {feeStatus.status ? "Reautorizar cobrança" : "Autorizar cobrança automática"}
+                    </button>
+                  ) : (
+                    <span className="text-xs text-slate-400">Sem clientes pagantes ainda</span>
+                  )}
+                </div>
+                {feeStatus.status && feeStatus.status !== "authorized" && (
+                  <div className="mt-1 text-[11px] text-amber-600">Status: {feeStatus.status}. Conclua a autorização no Mercado Pago.</div>
+                )}
+              </div>
+            )}
 
             <div className="rounded-2xl border">
               <div className="border-b px-3 py-2 text-sm font-medium text-slate-600">💼 Seus planos ({rplans.length})</div>

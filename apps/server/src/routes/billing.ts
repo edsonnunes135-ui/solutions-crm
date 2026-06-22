@@ -46,19 +46,32 @@ billingRouter.get("/billing", async (req: AuthedRequest, res) => {
     prisma.automation.count({ where: { orgId } }),
   ]);
 
+  const effective = await planForOrg(orgId); // respeita plano custom do parceiro (white-label)
   const plan = PLANS[org.plan] ?? PLANS.trial;
   const trialDaysLeft = org.plan === "trial" && org.trialEndsAt
     ? Math.max(0, Math.ceil((org.trialEndsAt.getTime() - Date.now()) / 86400000))
     : null;
 
+  // White-label: se este cliente veio de um parceiro, ele assina os planos DO PARCEIRO
+  // (não os planos estáticos da plataforma). Mantém a marca do parceiro de ponta a ponta.
+  const resellerPlans = org.resellerOrgId
+    ? await prisma.resellerPlan.findMany({
+        where: { resellerOrgId: org.resellerOrgId, active: true },
+        orderBy: [{ order: "asc" }, { price: "asc" }],
+        select: { id: true, name: true, price: true, users: true, contacts: true, automations: true, broadcast: true, ai: true },
+      })
+    : [];
+
   res.json({
     plan: org.plan,
-    planName: plan.name,
-    price: plan.price,
+    planName: effective.name,
+    price: effective.price,
     trialEndsAt: org.trialEndsAt,
     trialDaysLeft,
-    limits: { users: plan.users, contacts: plan.contacts, automations: plan.automations, broadcast: plan.broadcast, ai: plan.ai },
+    limits: { users: effective.users, contacts: effective.contacts, automations: effective.automations, broadcast: effective.broadcast, ai: effective.ai },
     usage: { users, contacts, automations },
+    resellerOrgId: org.resellerOrgId ?? null,
+    resellerPlans,
     plans: Object.entries(PLANS)
       .filter(([k]) => k !== "trial")
       .map(([key, p]) => ({ key, ...p })),

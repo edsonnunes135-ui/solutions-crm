@@ -31,6 +31,7 @@ model Organization {
   plan          String    @default("trial") // trial/starter/pro/business
   trialEndsAt   DateTime?
   resellerOrgId String? // white-label: empresa-parceira (revenda) que trouxe este cliente
+  mpPreapprovalId String? // white-label: id da assinatura recorrente (Mercado Pago) deste cliente na conta do parceiro
   // white-label: plano do parceiro atribuído a este cliente (override do PLANS estático)
   planLabel      String?
   planPrice      Int?
@@ -347,6 +348,10 @@ model OrgSetting {
   mpRefreshToken        String?
   mpUserId              String?
   mpConnectedAt         DateTime?
+  // white-label atacado: assinatura recorrente que o parceiro paga à Solutions (taxa da plataforma)
+  platformFeePreapprovalId String? // id da assinatura (Mercado Pago) na conta da plataforma
+  platformFeeStatus        String? // pending/authorized/cancelled/paused
+  platformFeeAmount        Int? // último valor mensal calculado (R$) da comissão
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
