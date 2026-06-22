@@ -1,4 +1,3 @@
-import { ensureAuth } from "../middlewares/ensureAuth";
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";

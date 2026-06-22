@@ -29,6 +29,13 @@ import { resellerPayRouter } from "./routes/resellerPay";
 
 dotenv.config();
 
+// Segurança: nunca rodar com o segredo de JWT padrão em produção.
+if (!process.env.JWT_SECRET) {
+  const msg = "JWT_SECRET não definido — defina no ambiente (segredo forte e único).";
+  if (process.env.NODE_ENV === "production") throw new Error(msg);
+  console.warn("[aviso] " + msg + " Usando valor inseguro só em desenvolvimento.");
+}
+
 const app = express();
 app.set("trust proxy", 1); // atrás do proxy do Render
 app.use(helmet());

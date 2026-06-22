@@ -9,10 +9,10 @@ export default function SuporteView({ token }: { token: string }) {
       <div>
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-semibold text-slate-900">Suporte</h1>
-          <span className="rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">fale com o CEO</span>
+          <span className="rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">atendimento direto</span>
         </div>
         <p className="mt-1 text-sm text-slate-500">
-          Dúvidas, ajuda ou sugestões? Fale direto com o CEO da Solutions. A gente responde por aqui mesmo.
+          Dúvidas, ajuda ou sugestões? Fale direto com o suporte da Solutions. A gente responde por aqui mesmo.
         </p>
       </div>
       <ChatBox
@@ -20,8 +20,8 @@ export default function SuporteView({ token }: { token: string }) {
         loadPath="/chat/support"
         sendPath="/chat/support"
         meId={meId}
-        placeholder="Escreva sua dúvida para o CEO…"
-        emptyHint="Tire suas dúvidas direto com o CEO. Mande sua primeira mensagem! 🤝"
+        placeholder="Escreva sua dúvida para o suporte…"
+        emptyHint="Tire suas dúvidas com o nosso suporte. Mande sua primeira mensagem! 🤝"
       />
     </div>
   );

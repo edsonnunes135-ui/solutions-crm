@@ -688,7 +688,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
       {impName && (
         <div className="relative z-20 flex items-center justify-center gap-3 bg-purple-700 px-4 py-2 text-center text-sm font-medium text-white">
-          <span>🚪 Modo suporte — você está dentro da empresa <strong>{impName}</strong></span>
+          <span>🚪 Modo suporte: você está dentro da empresa <strong>{impName}</strong></span>
           <button
             onClick={() => { exitImpersonation(); window.location.reload(); }}
             className="rounded-lg bg-white/20 px-3 py-1 text-xs font-semibold hover:bg-white/30"
@@ -717,7 +717,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
           { label: "Copiloto de IA", view: "ai" },
           { label: "Chat da equipe", view: "comunicacao" },
           { label: "Reuniões por vídeo", view: "reunioes" },
-          { label: "Suporte (falar com o CEO)", view: "suporte", manager: true },
+          { label: "Suporte", view: "suporte", manager: true },
           { label: "Suporte aos clientes", view: "suporte-ceo", ceo: true },
           { label: "Gestão", view: "manager", manager: true },
           { label: "Vendedores (presença)", view: "vendedores", manager: true },
@@ -960,7 +960,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
               <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Comunicação</div>
               <NavItem icon={<MessagesSquare className="h-4 w-4 text-teal-500" />} active={view === "comunicacao"} onClick={() => setView("comunicacao")} label="Chat da equipe" />
               <NavItem icon={<Video className="h-4 w-4 text-rose-500" />} active={view === "reunioes"} onClick={() => setView("reunioes")} label="Reuniões (vídeo)" />
-              {isManager && <NavItem icon={<LifeBuoy className="h-4 w-4 text-sky-500" />} active={view === "suporte"} onClick={() => setView("suporte")} label="Suporte (CEO)" />}
+              {isManager && <NavItem icon={<LifeBuoy className="h-4 w-4 text-sky-500" />} active={view === "suporte"} onClick={() => setView("suporte")} label="Suporte" />}
 
               {isManager && (
                 <>

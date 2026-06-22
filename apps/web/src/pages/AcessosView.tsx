@@ -43,7 +43,7 @@ export default function AcessosView({ token }: { token: string }) {
           <span className="rounded-full border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">CEO</span>
         </div>
         <p className="mt-1 text-sm text-slate-500">
-          Todas as pessoas que criaram conta na Solutions — com nome e e-mail. Total: <strong>{users.length}</strong>.
+          Todas as pessoas que criaram conta na Solutions, com nome e e-mail. Total: <strong>{users.length}</strong>.
         </p>
       </div>
 

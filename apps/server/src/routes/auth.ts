@@ -1,4 +1,3 @@
-import { ensureAuth } from "../middlewares/ensureAuth";
 import { Router } from "express";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -159,44 +158,13 @@ authRouter.post("/auth/reset-password", async (req, res) => {
   res.json({ ok: true });
 });
 
-authRouter.get("/me", ensureAuth, async (req, res) => {
-const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).json({ error: "missing_token" });
-  }
-
-  const [, token] = authHeader.split(" ");
-
-  try {
-    const secret = process.env.JWT_SECRET || "change_me";
-    const decoded = jwt.verify(token, secret) as {
-      userId: string;
-      orgId: string;
-      role: string;
-    };
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-      },
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: "user_not_found" });
-    }
-
-    res.json({
-      user,
-      orgId: decoded.orgId,
-      role: decoded.role,
-    });
-  } catch (err) {
-    return res.status(401).json({ error: "invalid_token" });
-  }
+authRouter.get("/me", requireAuth, async (req: AuthedRequest, res) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user!.userId },
+    select: { id: true, name: true, email: true },
+  });
+  if (!user) return res.status(404).json({ error: "user_not_found" });
+  res.json({ user, orgId: req.user!.orgId, role: req.user!.role });
 });
 
 // Atualizar o próprio perfil (nome e/ou e-mail de login)

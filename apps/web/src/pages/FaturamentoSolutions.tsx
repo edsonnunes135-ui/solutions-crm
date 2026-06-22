@@ -131,7 +131,7 @@ export default function FaturamentoSolutions({ token, hideValues = false }: { to
           <span className="rounded-full border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">CEO</span>
         </div>
         <p className="mt-1 text-sm text-slate-500">
-          Quanto a Solutions fatura com as assinaturas. Não inclui as vendas internas das empresas-clientes — isso fica privado de cada uma.
+          Quanto a Solutions fatura com as assinaturas. Não inclui as vendas internas das empresas-clientes (isso fica privado de cada uma).
         </p>
       </div>
 

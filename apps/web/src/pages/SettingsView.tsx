@@ -522,7 +522,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
           <div className="p-4 pt-0 space-y-3">
             <div className="rounded-2xl border bg-slate-50 p-3">
               <div className="text-sm font-medium text-slate-700">🔗 Seu link de cadastro (com a sua marca)</div>
-              <div className="mt-1 text-xs text-slate-500">Compartilhe este link. Quem se cadastrar por ele entra já com a SUA marca (logo, nome e cor) e fica vinculado a você — nunca vê "Solutions".</div>
+              <div className="mt-1 text-xs text-slate-500">Compartilhe este link. Quem se cadastrar por ele entra já com a SUA marca (logo, nome e cor) e fica vinculado a você. Nunca vê "Solutions".</div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <input readOnly value={brandLink} className="min-w-[220px] flex-1 rounded-xl border bg-white px-3 py-2 text-xs text-slate-600 outline-none" />
                 <button
@@ -556,7 +556,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
               <div className="rounded-2xl border bg-white p-3">
                 <div className="text-sm font-medium text-slate-700">🏦 Taxa da plataforma (Solutions)</div>
                 <div className="mt-1 text-xs text-slate-500">
-                  Seus clientes pagam <strong>você</strong> 100% (assinatura mensal). A Solutions cobra <strong>{feeStatus.feePercent}%</strong> da sua receita como taxa da plataforma — cobrança mensal automática no seu Mercado Pago.
+                  Seus clientes pagam <strong>você</strong> 100% (assinatura mensal). A Solutions cobra <strong>{feeStatus.feePercent}%</strong> da sua receita como taxa da plataforma (cobrança mensal automática no seu Mercado Pago).
                 </div>
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                   <div className="text-xs text-slate-600">
@@ -586,7 +586,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
                 {rplans.map((p) => (
                   <div key={p.id} className="flex items-center justify-between px-3 py-2 text-sm">
                     <div>
-                      <div className="font-medium text-slate-800">{p.name} — <span className="text-emerald-700">R$ {p.price}/mês</span></div>
+                      <div className="font-medium text-slate-800">{p.name} · <span className="text-emerald-700">R$ {p.price}/mês</span></div>
                       <div className="text-xs text-slate-500">{p.users} usuário(s) · {Number(p.contacts).toLocaleString("pt-BR")} contatos{p.ai ? " · IA" : ""}{p.broadcast ? " · Campanhas" : ""}</div>
                     </div>
                     <button onClick={() => deletePlan(p.id)} className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Remover"><Trash2 className="h-4 w-4" /></button>
@@ -626,7 +626,7 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
                       title="Atribuir um plano a este cliente"
                     >
                       <option value="">Atribuir plano…</option>
-                      {rplans.map((p) => <option key={p.id} value={p.id}>{p.name} — R$ {p.price}/mês</option>)}
+                      {rplans.map((p) => <option key={p.id} value={p.id}>{p.name} · R$ {p.price}/mês</option>)}
                       <option value="__none">↩︎ Voltar ao teste grátis</option>
                     </select>
                   </div>
