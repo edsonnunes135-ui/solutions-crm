@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MessageSquare, Users, KanbanSquare, Zap, LineChart as LineChartIcon,
   Sparkles, Search, Plus, Send, Clock, CheckCircle2, AlertCircle, Filter,
-  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video,
+  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video, Bot,
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
@@ -13,6 +13,7 @@ import TechBackground from "./components/TechBackground";
 import ManagerView from "./pages/ManagerView";
 import SettingsView from "./pages/SettingsView";
 import AutomationsView from "./pages/AutomationsView";
+import FlowsView from "./pages/FlowsView";
 import CampaignsView from "./pages/CampaignsView";
 import CopilotView from "./pages/CopilotView";
 import HomeView from "./pages/HomeView";
@@ -26,7 +27,7 @@ import SuporteView from "./pages/SuporteView";
 import SuporteCeoView from "./pages/SuporteCeoView";
 import ReunioesView from "./pages/ReunioesView";
 
-type View = "home" | "inbox" | "pipeline" | "contacts" | "automations" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions" | "acessos" | "templates" | "presenca" | "vendedores" | "comunicacao" | "suporte" | "suporte-ceo" | "reunioes";
+type View = "home" | "inbox" | "pipeline" | "contacts" | "automations" | "flows" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions" | "acessos" | "templates" | "presenca" | "vendedores" | "comunicacao" | "suporte" | "suporte-ceo" | "reunioes";
 
 // ── UI primitives ────────────────────────────────────────────────────────────
 
@@ -954,6 +955,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
               <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Inteligência</div>
               <NavItem icon={<Sparkles className="h-4 w-4" />} active={view === "ai"} onClick={() => setView("ai")} label="Copiloto IA" />
+              {isManager && <NavItem icon={<Bot className="h-4 w-4 text-sky-500" />} active={view === "flows"} onClick={() => setView("flows")} label="Fluxos da IA" />}
               <NavItem icon={<Zap className="h-4 w-4" />} active={view === "automations"} onClick={() => setView("automations")} label="Automações" />
               <NavItem icon={<LineChartIcon className="h-4 w-4" />} active={view === "analytics"} onClick={() => setView("analytics")} label="BI / Relatórios" />
 
@@ -1404,6 +1406,9 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
             {view === "automations" && (
               <AutomationsView token={token} automations={automations} onChanged={reload} />
             )}
+
+            {/* ── FLUXOS DA IA (no-code) ── */}
+            {view === "flows" && <FlowsView token={token} />}
 
             {/* ── CAMPAIGNS ── */}
             {view === "campaigns" && <CampaignsView token={token} contacts={contacts} />}

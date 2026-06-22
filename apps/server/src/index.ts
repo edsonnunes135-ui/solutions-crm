@@ -26,6 +26,7 @@ import { meetingsRouter } from "./routes/meetings";
 import { publicRouter } from "./routes/publicBranding";
 import { resellerRouter } from "./routes/reseller";
 import { resellerPayRouter } from "./routes/resellerPay";
+import { flowsRouter } from "./routes/flows";
 
 dotenv.config();
 
@@ -80,6 +81,7 @@ app.use(pushRouter);
 app.use(orgsRouter);
 app.use(resellerRouter);
 app.use(resellerPayRouter);
+app.use(flowsRouter);
 app.use(adminRouter);
 app.use(presenceRouter);
 app.use(chatRouter);
