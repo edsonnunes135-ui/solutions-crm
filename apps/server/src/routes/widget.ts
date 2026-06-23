@@ -45,18 +45,24 @@ widgetRouter.post("/widget/:orgId/message", async (req, res) => {
   pushToOrg(orgId, { title: `💬 Mensagem do site (${contact.name})`, body: text.slice(0, 120), url: "/" }).catch(() => {});
 
   const inboundCount = await prisma.message.count({ where: { orgId, conversationId: conv.id, direction: "inbound" } });
+  const before = await prisma.message.findMany({ where: { orgId, conversationId: conv.id, direction: "outbound" }, select: { id: true } });
+  const beforeIds = new Set(before.map((m) => m.id));
+  const flowsTotal = await prisma.flow.count({ where: { orgId, active: true } });
+  let fired = false;
   try {
-    await runMatchingFlow({ orgId, conversationId: conv.id, contactId: contact.id, contactName: contact.name, channel: "webchat", text, isFirstInbound: inboundCount <= 1 });
+    fired = await runMatchingFlow({ orgId, conversationId: conv.id, contactId: contact.id, contactName: contact.name, channel: "webchat", text, isFirstInbound: inboundCount <= 1 });
   } catch {
     /* fluxos são best-effort */
   }
 
-  const replies = await prisma.message.findMany({
-    where: { orgId, conversationId: conv.id, direction: "outbound", sentAt: { gt: inserted.message.sentAt } },
+  // robusto: compara por ID (não por timestamp de ms, que pode empatar)
+  const all = await prisma.message.findMany({
+    where: { orgId, conversationId: conv.id, direction: "outbound" },
     orderBy: { sentAt: "asc" },
-    select: { text: true, sentAt: true },
+    select: { id: true, text: true, sentAt: true },
   });
-  res.json({ replies: replies.map((m) => ({ text: m.text, at: m.sentAt })) });
+  const replies = all.filter((m) => !beforeIds.has(m.id)).map((m) => ({ text: m.text, at: m.sentAt }));
+  res.json({ replies, debug: { fired, flowsTotal } });
 });
 
 // Polling: respostas novas (ex.: humano respondeu pelo Inbox) desde "after"
