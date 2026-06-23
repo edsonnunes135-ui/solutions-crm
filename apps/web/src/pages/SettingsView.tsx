@@ -48,8 +48,10 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
   const [orgMsg, setOrgMsg] = useState("");
   const [clients, setClients] = useState<any[]>([]);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [snippetCopied, setSnippetCopied] = useState(false);
   const myOrgId = getUser()?.orgId ?? "";
   const brandLink = typeof window !== "undefined" ? `${window.location.origin}/?marca=${myOrgId}` : "";
+  const widgetSnippet = `<script src="https://solutions-api.onrender.com/widget.js" data-org="${myOrgId}"></script>`;
 
   // Planos do parceiro (white-label Fase 2)
   const [rplans, setRplans] = useState<any[]>([]);
@@ -533,6 +535,20 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
                 </button>
               </div>
               <div className="mt-2 text-[11px] text-slate-400">Dica: configure sua marca na aba <strong>Marca</strong> (logo, nome e cor) antes de divulgar.</div>
+            </div>
+
+            <div className="rounded-2xl border bg-slate-50 p-3">
+              <div className="text-sm font-medium text-slate-700">💬 Chat no seu site</div>
+              <div className="mt-1 text-xs text-slate-500">Cole este código no seu site (antes do <code className="rounded bg-slate-200 px-1">&lt;/body&gt;</code>) e ganhe um chat com a SUA marca, ligado ao Inbox e aos seus Fluxos da IA.</div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <input readOnly value={widgetSnippet} onFocus={(e) => e.currentTarget.select()} className="min-w-[220px] flex-1 rounded-xl border bg-white px-3 py-2 text-xs text-slate-600 outline-none" />
+                <button
+                  onClick={() => { navigator.clipboard?.writeText(widgetSnippet); setSnippetCopied(true); setTimeout(() => setSnippetCopied(false), 2000); }}
+                  className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800"
+                >
+                  {snippetCopied ? "Copiado! ✓" : "Copiar código"}
+                </button>
+              </div>
             </div>
 
             <div className="rounded-2xl border bg-white p-3">

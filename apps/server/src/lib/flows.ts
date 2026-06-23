@@ -20,7 +20,7 @@ export async function runMatchingFlow(params: {
   conversationId: string;
   contactId: string;
   contactName: string;
-  channel: "whatsapp" | "instagram";
+  channel: "whatsapp" | "instagram" | "webchat";
   text: string;
   isFirstInbound: boolean;
 }): Promise<boolean> {

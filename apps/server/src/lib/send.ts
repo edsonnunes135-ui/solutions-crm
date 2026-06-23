@@ -10,7 +10,7 @@ export type SendResult = { sent: boolean; externalId?: string | null; error?: st
 export async function sendChannelMessage(params: {
   orgId: string;
   conversationId: string;
-  channel: "whatsapp" | "instagram";
+  channel: "whatsapp" | "instagram" | "webchat";
   text: string;
 }): Promise<SendResult & { messageId: string | null }> {
   const { orgId, conversationId, channel, text } = params;
@@ -22,6 +22,9 @@ export async function sendChannelMessage(params: {
     data: { orgId, conversationId: conv.id, channel, direction: "outbound", text },
   });
   await prisma.conversation.update({ where: { id: conv.id }, data: { lastAt: new Date() } });
+
+  // Widget do site: não há API externa — a mensagem fica registrada e o widget a busca por polling.
+  if (channel === "webchat") return { sent: true, messageId: msg.id };
 
   const setting = await prisma.orgSetting.findUnique({ where: { orgId } });
   const recipient = conv.externalId;

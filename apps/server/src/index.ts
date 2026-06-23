@@ -24,6 +24,7 @@ import { presenceRouter } from "./routes/presence";
 import { chatRouter } from "./routes/chat";
 import { meetingsRouter } from "./routes/meetings";
 import { publicRouter } from "./routes/publicBranding";
+import { widgetRouter } from "./routes/widget";
 import { resellerRouter } from "./routes/reseller";
 import { resellerPayRouter } from "./routes/resellerPay";
 import { flowsRouter } from "./routes/flows";
@@ -65,6 +66,7 @@ app.use(apiLimiter);
 
 app.use(healthRouter);
 app.use(publicRouter);
+app.use(widgetRouter);
 app.use(authRouter);
 // Webhooks públicos (sem JWT) — devem vir ANTES dos routers que aplicam requireAuth
 app.use(webhooksRouter);
