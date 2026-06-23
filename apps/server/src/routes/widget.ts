@@ -48,6 +48,7 @@ widgetRouter.post("/widget/:orgId/message", async (req, res) => {
   const before = await prisma.message.findMany({ where: { orgId, conversationId: conv.id, direction: "outbound" }, select: { id: true } });
   const beforeIds = new Set(before.map((m) => m.id));
   const flowsTotal = await prisma.flow.count({ where: { orgId, active: true } });
+  const dbgFlow = await prisma.flow.findFirst({ where: { orgId, active: true }, select: { triggers: true } });
   let fired = false;
   try {
     fired = await runMatchingFlow({ orgId, conversationId: conv.id, contactId: contact.id, contactName: contact.name, channel: "webchat", text, isFirstInbound: inboundCount <= 1 });
@@ -62,7 +63,7 @@ widgetRouter.post("/widget/:orgId/message", async (req, res) => {
     select: { id: true, text: true, sentAt: true },
   });
   const replies = all.filter((m) => !beforeIds.has(m.id)).map((m) => ({ text: m.text, at: m.sentAt }));
-  res.json({ replies, debug: { fired, flowsTotal } });
+  res.json({ replies, debug: { fired, flowsTotal, triggers: dbgFlow?.triggers, text } });
 });
 
 // Polling: respostas novas (ex.: humano respondeu pelo Inbox) desde "after"

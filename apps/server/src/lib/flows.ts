@@ -33,7 +33,7 @@ export async function runMatchingFlow(params: {
   if (flows.length === 0) return false;
 
   // normaliza minúsculas e remove acentos, pra "preço" casar com "preco"
-  const norm = (s: string) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const norm = (s: string) => (s || "").toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
   const normText = norm(text);
   const match = flows.find((f) => {
     const triggers = Array.isArray(f.triggers) ? (f.triggers as unknown[]).map((t) => String(t)) : [];
