@@ -45,25 +45,21 @@ widgetRouter.post("/widget/:orgId/message", async (req, res) => {
   pushToOrg(orgId, { title: `💬 Mensagem do site (${contact.name})`, body: text.slice(0, 120), url: "/" }).catch(() => {});
 
   const inboundCount = await prisma.message.count({ where: { orgId, conversationId: conv.id, direction: "inbound" } });
+  // respostas = mensagens outbound criadas pelo fluxo agora (compara por ID, robusto a ms)
   const before = await prisma.message.findMany({ where: { orgId, conversationId: conv.id, direction: "outbound" }, select: { id: true } });
   const beforeIds = new Set(before.map((m) => m.id));
-  const flowsTotal = await prisma.flow.count({ where: { orgId, active: true } });
-  const dbgFlow = await prisma.flow.findFirst({ where: { orgId, active: true }, select: { triggers: true } });
-  let fired = false;
   try {
-    fired = await runMatchingFlow({ orgId, conversationId: conv.id, contactId: contact.id, contactName: contact.name, channel: "webchat", text, isFirstInbound: inboundCount <= 1 });
+    await runMatchingFlow({ orgId, conversationId: conv.id, contactId: contact.id, contactName: contact.name, channel: "webchat", text, isFirstInbound: inboundCount <= 1 });
   } catch {
     /* fluxos são best-effort */
   }
-
-  // robusto: compara por ID (não por timestamp de ms, que pode empatar)
   const all = await prisma.message.findMany({
     where: { orgId, conversationId: conv.id, direction: "outbound" },
     orderBy: { sentAt: "asc" },
     select: { id: true, text: true, sentAt: true },
   });
   const replies = all.filter((m) => !beforeIds.has(m.id)).map((m) => ({ text: m.text, at: m.sentAt }));
-  res.json({ replies, debug: { fired, flowsTotal, triggers: dbgFlow?.triggers, text } });
+  res.json({ replies });
 });
 
 // Polling: respostas novas (ex.: humano respondeu pelo Inbox) desde "after"
@@ -84,7 +80,8 @@ widgetRouter.get("/widget/:orgId/poll", async (req, res) => {
 
 // Script embutível: o cliente cola <script src=".../widget.js" data-org="ORGID"></script>
 const WIDGET_JS = `(function(){
-  var s = document.currentScript; if(!s) return;
+  var s = document.currentScript || (function(){ var a=document.querySelectorAll('script[src*="/widget.js"]'); return a[a.length-1]; })();
+  if(!s) return;
   var org = s.getAttribute('data-org'); if(!org) return;
   var api = s.src.split('/widget.js')[0];
   var KEY = 'sccw_'+org;
