@@ -85,11 +85,9 @@ function NavItem({ icon, label, active, onClick }: any) {
 }
 
 function ChannelBadge({ c }: { c: string }) {
-  return c === "whatsapp" ? (
-    <Pill><span className="inline-flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> WhatsApp</span></Pill>
-  ) : (
-    <Pill><span className="inline-flex items-center gap-1"><Instagram className="h-3.5 w-3.5" /> Instagram</span></Pill>
-  );
+  if (c === "whatsapp") return <Pill><span className="inline-flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> WhatsApp</span></Pill>;
+  if (c === "webchat") return <Pill><span className="inline-flex items-center gap-1"><MessageSquare className="h-3.5 w-3.5" /> Site</span></Pill>;
+  return <Pill><span className="inline-flex items-center gap-1"><Instagram className="h-3.5 w-3.5" /> Instagram</span></Pill>;
 }
 
 function PriorityPill({ p }: { p: string }) {
@@ -601,7 +599,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   }
   const ptDate = (v: any) => (v ? new Date(v).toLocaleDateString("pt-BR") : "");
   const cap = (s?: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "");
-  const channelLabel: Record<string, string> = { whatsapp: "WhatsApp", instagram: "Instagram" };
+  const channelLabel: Record<string, string> = { whatsapp: "WhatsApp", instagram: "Instagram", webchat: "Site" };
   const statusLabel: Record<string, string> = { open: "Aberto", won: "Ganho", lost: "Perdido" };
 
   function exportContacts() {

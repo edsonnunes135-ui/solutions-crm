@@ -242,7 +242,7 @@ channelsRouter.delete("/channels/accounts/:id", async (req: AuthedRequest, res) 
 const SendSchema = z.object({
   conversationId: z.string().min(1),
   text: z.string().min(1),
-  channel: z.enum(["whatsapp", "instagram"]),
+  channel: z.enum(["whatsapp", "instagram", "webchat"]),
 });
 
 channelsRouter.post("/channels/send", async (req: AuthedRequest, res) => {
