@@ -273,3 +273,39 @@ channelsRouter.post("/channels/send", async (req: AuthedRequest, res) => {
     messageId: r.messageId,
   });
 });
+
+// Pagamento no chat: gera um link de pagamento (Mercado Pago) na conta da empresa
+// e manda na conversa. Requer a conta MP conectada (OrgSetting.mpAccessToken).
+const ChargeSchema = z.object({
+  conversationId: z.string().min(1),
+  amount: z.number().positive().max(1000000),
+  description: z.string().max(120).optional(),
+});
+channelsRouter.post("/channels/charge", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const parsed = ChargeSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+
+  const s = await prisma.orgSetting.findUnique({ where: { orgId }, select: { mpAccessToken: true } });
+  if (!s?.mpAccessToken) return res.status(503).json({ error: "mp_not_connected" });
+
+  const conv = await prisma.conversation.findFirst({ where: { id: parsed.data.conversationId, orgId }, select: { id: true, channel: true } });
+  if (!conv) return res.status(404).json({ error: "conversation_not_found" });
+
+  const title = parsed.data.description || "Pagamento";
+  try {
+    const r = await fetch("https://api.mercadopago.com/checkout/preferences", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${s.mpAccessToken}` },
+      body: JSON.stringify({ items: [{ title, quantity: 1, unit_price: parsed.data.amount, currency_id: "BRL" }] }),
+    });
+    const data: any = await r.json();
+    if (!r.ok) return res.status(502).json({ error: "mp_error", detail: data?.message ?? data });
+    const link = data.init_point ?? data.sandbox_init_point;
+    const msg = `💳 Link de pagamento — ${title}: R$ ${parsed.data.amount.toFixed(2)}\n${link}`;
+    await sendChannelMessage({ orgId, conversationId: conv.id, channel: conv.channel as any, text: msg });
+    res.json({ ok: true, link });
+  } catch (err: any) {
+    res.status(502).json({ error: "mp_request_failed", detail: String(err?.message ?? err) });
+  }
+});

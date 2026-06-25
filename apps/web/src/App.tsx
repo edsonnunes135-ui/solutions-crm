@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MessageSquare, Users, KanbanSquare, Zap, LineChart as LineChartIcon,
   Sparkles, Search, Plus, Send, Clock, CheckCircle2, AlertCircle, Filter,
-  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video, Bot,
+  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video, Bot, CreditCard,
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
@@ -465,6 +465,27 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
       setNotes((p) => [{ ...n, authorName: user?.name ?? "" }, ...p]);
     } catch {
       /* ignore */
+    }
+  }
+
+  async function chargeInChat() {
+    if (!selectedContact || !thread.conversationId) { setSendNote("Abra uma conversa ativa para cobrar."); return; }
+    const amountStr = window.prompt("Valor da cobrança (R$):", "");
+    if (amountStr == null) return;
+    const amount = Number(String(amountStr).replace(",", "."));
+    if (!amount || amount <= 0) { setSendNote("Valor inválido."); return; }
+    const description = window.prompt("Descrição (ex.: Plano Mensal):", "") || undefined;
+    setSendNote("Gerando link de pagamento…");
+    try {
+      const r = await apiPost("/channels/charge", { conversationId: thread.conversationId, amount, description }, token);
+      if (r.link) {
+        apiGet(`/contacts/${selectedContact.id}/messages`, token).then(setThread).catch(() => {});
+        setSendNote("Link de pagamento enviado na conversa! 💳");
+      }
+    } catch (err: any) {
+      const m = String(err?.message ?? "");
+      if (m.includes("mp_not_connected")) setSendNote("Conecte sua conta Mercado Pago primeiro (Configurações → Revenda → Pagamentos).");
+      else setSendNote(`Não foi possível gerar a cobrança: ${m}`);
     }
   }
 
@@ -1218,6 +1239,9 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                         </Button>
                         <Button variant="outline" className="gap-1 px-2 py-1 text-xs" onClick={aiScore} disabled={aiBusy !== ""}>
                           <Sparkles className="h-3.5 w-3.5 text-violet-500" /> {aiBusy === "score" ? "Analisando…" : "Analisar lead"}
+                        </Button>
+                        <Button variant="outline" className="gap-1 px-2 py-1 text-xs" onClick={chargeInChat}>
+                          <CreditCard className="h-3.5 w-3.5 text-emerald-600" /> Cobrar
                         </Button>
                         <ScoreBadge c={selectedContact} />
                       </div>
