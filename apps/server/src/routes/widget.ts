@@ -9,6 +9,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { findOrCreateContactByIdentity, upsertConversationForContact, insertInboundMessageIfNew } from "../lib/meta";
 import { runMatchingFlow } from "../lib/flows";
+import { autoAssignIfNeeded } from "../lib/assign";
 import { pushToOrg } from "../lib/push";
 
 export const widgetRouter = Router();
@@ -43,6 +44,7 @@ widgetRouter.post("/widget/:orgId/message", async (req, res) => {
   if (!inserted.created || !inserted.message) return res.json({ replies: [] });
 
   pushToOrg(orgId, { title: `💬 Mensagem do site (${contact.name})`, body: text.slice(0, 120), url: "/" }).catch(() => {});
+  await autoAssignIfNeeded(orgId, conv.id);
 
   const inboundCount = await prisma.message.count({ where: { orgId, conversationId: conv.id, direction: "inbound" } });
   // respostas = mensagens outbound criadas pelo fluxo agora (compara por ID, robusto a ms)

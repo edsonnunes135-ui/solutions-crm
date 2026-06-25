@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Crown, TrendingUp, TrendingDown, Users } from "lucide-react";
+import { Crown, TrendingUp, TrendingDown, Users, Inbox } from "lucide-react";
 import { apiGet } from "../lib/api";
 import { roleLabel } from "../lib/roles";
 
@@ -23,11 +23,13 @@ function KPI({ title, value, hint }: any) {
 
 export default function ManagerView({ token, hideValues = false }: { token: string; hideValues?: boolean }) {
   const [data, setData] = useState<any>(null);
+  const [svc, setSvc] = useState<any>(null);
   const [error, setError] = useState("");
   const money = (v: number) => (hideValues ? "R$ ••••••" : currencyBRL(v));
 
   useEffect(() => {
     apiGet("/analytics/manager", token).then(setData).catch((e) => setError(e.message));
+    apiGet("/inbox/service-metrics", token).then(setSvc).catch(() => {});
   }, [token]);
 
   if (error) return <Card><div className="p-6 text-sm text-red-600">Acesso restrito a gestores. ({error})</div></Card>;
@@ -53,6 +55,41 @@ export default function ManagerView({ token, hideValues = false }: { token: stri
           </div>
         </div>
       </Card>
+
+      {svc && (
+        <Card>
+          <div className="p-4 pb-3">
+            <div className="flex items-center gap-2 text-base font-semibold">
+              <Inbox className="h-5 w-5 text-sky-500" /> Filas de atendimento
+            </div>
+            <div className="text-sm text-slate-500">Distribuição automática entre a equipe + SLA em tempo real</div>
+          </div>
+          <div className="p-4 pt-0">
+            <div className="grid gap-3 md:grid-cols-4">
+              <KPI title="Conversas abertas" value={svc.open} />
+              <KPI title="Sem atendente" value={svc.unassigned} />
+              <KPI title="Esperando resposta" value={svc.waiting} hint={svc.oldestWaitMin != null ? `mais antiga: ${svc.oldestWaitMin >= 60 ? Math.floor(svc.oldestWaitMin / 60) + "h" : svc.oldestWaitMin + "min"}` : undefined} />
+              <KPI title="Vendedores ativos" value={svc.byAgent.length} />
+            </div>
+            {svc.byAgent.length > 0 && (
+              <div className="mt-3">
+                <div className="mb-1 text-xs font-medium text-slate-500">Carga por vendedor (conversas abertas)</div>
+                <div className="space-y-1.5">
+                  {svc.byAgent.map((a: any) => {
+                    const max = svc.byAgent[0].open || 1;
+                    return (
+                      <div key={a.name}>
+                        <div className="flex items-center justify-between text-sm"><span>{a.name}</span><span className="font-medium">{a.open}</span></div>
+                        <div className="mt-1 h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-sky-400" style={{ width: `${(a.open / max) * 100}%` }} /></div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

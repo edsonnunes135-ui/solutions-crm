@@ -122,6 +122,45 @@ crudRouter.post("/contacts/:id/notes", async (req: AuthedRequest, res) => {
   res.json({ id: note.id, text: note.text, createdAt: note.createdAt });
 });
 
+// Métricas de atendimento (filas/SLA) — só gestor
+crudRouter.get("/inbox/service-metrics", requireRole("owner", "partner", "admin"), async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const [open, unassigned, byAgentRaw] = await Promise.all([
+    prisma.conversation.count({ where: { orgId, status: "open" } }),
+    prisma.conversation.count({ where: { orgId, status: "open", assigneeId: null } }),
+    prisma.conversation.groupBy({ by: ["assigneeId"], where: { orgId, status: "open", assigneeId: { not: null } }, _count: true }),
+  ]);
+
+  const userIds = byAgentRaw.map((b) => b.assigneeId!).filter(Boolean);
+  const users = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true } });
+  const nameById = Object.fromEntries(users.map((u) => [u.id, u.name]));
+  const byAgent = byAgentRaw
+    .map((b) => ({ name: nameById[b.assigneeId!] ?? "?", open: (b as any)._count ?? 0 }))
+    .sort((a, b) => b.open - a.open);
+
+  // "esperando" = conversa aberta cuja ÚLTIMA mensagem é do cliente (inbound)
+  const openConvs = await prisma.conversation.findMany({ where: { orgId, status: "open" }, select: { id: true }, take: 500 });
+  let waiting = 0;
+  let oldestWaitMin: number | null = null;
+  if (openConvs.length) {
+    const last = await prisma.message.findMany({
+      where: { orgId, conversationId: { in: openConvs.map((c) => c.id) } },
+      orderBy: { sentAt: "desc" },
+      distinct: ["conversationId"],
+      select: { direction: true, sentAt: true },
+    });
+    const now = Date.now();
+    for (const m of last) {
+      if (m.direction === "inbound") {
+        waiting++;
+        const mins = Math.floor((now - new Date(m.sentAt).getTime()) / 60000);
+        if (oldestWaitMin === null || mins > oldestWaitMin) oldestWaitMin = mins;
+      }
+    }
+  }
+  res.json({ open, unassigned, waiting, oldestWaitMin, byAgent });
+});
+
 // Fila de atendimento: assumir / resolver / reabrir conversa
 crudRouter.patch("/conversations/:id", async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
