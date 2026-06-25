@@ -116,6 +116,18 @@ model Flow {
   @@index([orgId])
 }
 
+// Notas internas sobre um contato (só a equipe vê; nunca vão pro cliente).
+model ContactNote {
+  id        String   @id @default(cuid())
+  orgId     String
+  contactId String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([contactId])
+}
+
 // Canais de comunicação ao vivo: "team" (gestor↔vendedores da empresa) e
 // "support" (gestor da empresa ↔ CEO da plataforma).
 model ChatMessage {

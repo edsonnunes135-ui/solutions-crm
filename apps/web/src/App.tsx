@@ -396,6 +396,8 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
   const [messageDraft, setMessageDraft] = useState("");
   const [thread, setThread] = useState<{ conversationId: string | null; channel: string; messages: any[] }>({ conversationId: null, channel: "whatsapp", messages: [] });
+  const [notes, setNotes] = useState<any[]>([]);
+  const [noteDraft, setNoteDraft] = useState("");
   const [sendNote, setSendNote] = useState("");
 
   // ── IA no Inbox ──
@@ -449,7 +451,22 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
     apiGet(`/contacts/${selectedContact.id}/messages`, token)
       .then(setThread)
       .catch(() => {});
+    apiGet(`/contacts/${selectedContact.id}/notes`, token)
+      .then((n) => setNotes(Array.isArray(n) ? n : []))
+      .catch(() => setNotes([]));
   }, [selectedContact?.id, token]);
+
+  async function addNote() {
+    const text = noteDraft.trim();
+    if (!text || !selectedContact) return;
+    setNoteDraft("");
+    try {
+      const n = await apiPost(`/contacts/${selectedContact.id}/notes`, { text }, token);
+      setNotes((p) => [{ ...n, authorName: user?.name ?? "" }, ...p]);
+    } catch {
+      /* ignore */
+    }
+  }
 
   async function sendMessage() {
     const text = messageDraft.trim();
@@ -1150,6 +1167,17 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                                 Reabrir
                               </Button>
                             )}
+                            {isManager && team.length > 0 && (
+                              <select
+                                value={selectedContact.conversation.assigneeId ?? ""}
+                                onChange={(e) => updateConversation(selectedContact.conversation.id, { assigneeId: e.target.value || null })}
+                                className="rounded-lg border px-2 py-1 text-xs text-slate-600"
+                                title="Transferir atendimento"
+                              >
+                                <option value="">Transferir…</option>
+                                {team.map((m) => <option key={m.userId} value={m.userId}>{m.name}</option>)}
+                              </select>
+                            )}
                           </>
                         )}
                         {selectedContact?.channel && <ChannelBadge c={selectedContact.conversation?.channel ?? selectedContact.channel} />}
@@ -1207,6 +1235,32 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                       </Button>
                     </div>
                     {sendNote && <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{sendNote}</div>}
+
+                    {selectedContact && (
+                      <div className="rounded-2xl border bg-amber-50/40 p-3">
+                        <div className="mb-2 text-xs font-semibold text-slate-600">📝 Notas internas <span className="font-normal text-slate-400">(só a equipe vê)</span></div>
+                        <div className="flex gap-2">
+                          <input
+                            value={noteDraft}
+                            onChange={(e) => setNoteDraft(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") addNote(); }}
+                            placeholder="Anote algo sobre este contato…"
+                            className="flex-1 rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-200"
+                          />
+                          <Button variant="outline" className="px-3 py-2 text-xs" onClick={addNote} disabled={!noteDraft.trim()}>Anotar</Button>
+                        </div>
+                        {notes.length > 0 && (
+                          <div className="mt-2 max-h-44 space-y-1.5 overflow-auto">
+                            {notes.map((n) => (
+                              <div key={n.id} className="rounded-xl border bg-white px-3 py-2 text-sm">
+                                <div className="whitespace-pre-wrap text-slate-700">{n.text}</div>
+                                <div className="mt-0.5 text-[11px] text-slate-400">{n.authorName ? `${n.authorName} · ` : ""}{new Date(n.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {selectedContact && (
                       <div className="grid gap-3 md:grid-cols-2">

@@ -97,6 +97,31 @@ crudRouter.get("/contacts/:id/messages", async (req: AuthedRequest, res) => {
   });
 });
 
+// Notas internas do contato (só a equipe vê; nunca vão pro cliente)
+crudRouter.get("/contacts/:id/notes", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const notes = await prisma.contactNote.findMany({
+    where: { orgId, contactId: String(req.params.id) },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
+  const userIds = [...new Set(notes.map((n) => n.userId))];
+  const users = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true } });
+  const nameById = Object.fromEntries(users.map((u) => [u.id, u.name]));
+  res.json(notes.map((n) => ({ id: n.id, text: n.text, createdAt: n.createdAt, authorName: nameById[n.userId] ?? "" })));
+});
+
+crudRouter.post("/contacts/:id/notes", async (req: AuthedRequest, res) => {
+  const orgId = req.user!.orgId;
+  const Body = z.object({ text: z.string().min(1).max(2000) });
+  const parsed = Body.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "invalid_body" });
+  const contact = await prisma.contact.findFirst({ where: { id: String(req.params.id), orgId } });
+  if (!contact) return res.status(404).json({ error: "not_found" });
+  const note = await prisma.contactNote.create({ data: { orgId, contactId: contact.id, userId: req.user!.userId, text: parsed.data.text } });
+  res.json({ id: note.id, text: note.text, createdAt: note.createdAt });
+});
+
 // Fila de atendimento: assumir / resolver / reabrir conversa
 crudRouter.patch("/conversations/:id", async (req: AuthedRequest, res) => {
   const orgId = req.user!.orgId;
