@@ -6,6 +6,7 @@ import { aiEnabled, agentReply, scoreLead } from "../lib/ai";
 import { sendChannelMessage } from "../lib/send";
 import { runMatchingFlow } from "../lib/flows";
 import { autoAssignIfNeeded } from "../lib/assign";
+import { fireWebhooks } from "../lib/fireWebhooks";
 import { planForOrg } from "./billing";
 import {
   normalizeMetaWebhook,
@@ -117,6 +118,9 @@ webhooksRouter.post("/webhooks/meta", async (req, res) => {
 
     // Fila de atendimento: distribui a conversa automaticamente se ainda não tem dono.
     await autoAssignIfNeeded(orgId, conv.id);
+
+    // Webhook de saída (integrações): avisa que chegou mensagem.
+    fireWebhooks(orgId, "message.received", { contactId: contact.id, conversationId: conv.id, channel: m.channel, text: m.text ?? "" }).catch(() => {});
 
     // Fluxos no-code (determinístico — funciona SEM a chave da IA).
     // Se um fluxo casar com a mensagem e responder, ele tem prioridade sobre o agente.

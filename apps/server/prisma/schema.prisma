@@ -128,6 +128,31 @@ model ContactNote {
   @@index([contactId])
 }
 
+// Chave de API pública (integração Make/N8N/Zapier). Guardamos só o HASH (segurança).
+model ApiKey {
+  id         String    @id @default(cuid())
+  orgId      String
+  name       String
+  keyHash    String    @unique
+  prefix     String // primeiros caracteres, só para exibir (ex.: sk_live_ab12cd)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([orgId])
+}
+
+// Webhook de saída: a Solutions avisa uma URL externa quando algo acontece.
+model Webhook {
+  id        String   @id @default(cuid())
+  orgId     String
+  url       String
+  event     String   @default("all") // all | message.received | contact.created
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([orgId])
+}
+
 // Canais de comunicação ao vivo: "team" (gestor↔vendedores da empresa) e
 // "support" (gestor da empresa ↔ CEO da plataforma).
 model ChatMessage {

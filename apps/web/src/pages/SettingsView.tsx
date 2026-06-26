@@ -60,13 +60,46 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
 
   const [mpStatus, setMpStatus] = useState<any>(null);
   const [feeStatus, setFeeStatus] = useState<any>(null);
+  const [apiKeys, setApiKeys] = useState<any[]>([]);
+  const [webhooks, setWebhooks] = useState<any[]>([]);
+  const [newKey, setNewKey] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("");
   useEffect(() => {
     if (!isManager) return;
     apiGet("/reseller/clients", token).then(setClients).catch(() => {});
     apiGet("/reseller/plans", token).then(setRplans).catch(() => {});
     apiGet("/reseller/mp/status", token).then(setMpStatus).catch(() => {});
     apiGet("/reseller/platform-fee/status", token).then(setFeeStatus).catch(() => {});
+    apiGet("/api-keys", token).then((k) => setApiKeys(Array.isArray(k) ? k : [])).catch(() => {});
+    apiGet("/webhooks", token).then((w) => setWebhooks(Array.isArray(w) ? w : [])).catch(() => {});
   }, [token, isManager]);
+
+  async function genApiKey() {
+    const name = window.prompt("Nome da chave (ex.: Make, N8N):", "");
+    if (!name) return;
+    try {
+      const r = await apiPost("/api-keys", { name }, token);
+      if (r?.key) { setNewKey(r.key); setApiKeys(await apiGet("/api-keys", token)); }
+    } catch { alert("Não foi possível gerar a chave."); }
+  }
+  async function delApiKey(id: string) {
+    if (!confirm("Revogar esta chave? Integrações que a usam vão parar de funcionar.")) return;
+    await apiDelete(`/api-keys/${id}`, token);
+    setApiKeys(await apiGet("/api-keys", token));
+  }
+  async function addWebhook() {
+    const url = webhookUrl.trim();
+    if (!url) return;
+    try {
+      await apiPost("/webhooks", { url }, token);
+      setWebhookUrl("");
+      setWebhooks(await apiGet("/webhooks", token));
+    } catch { alert("URL inválida ou não foi possível adicionar."); }
+  }
+  async function delWebhook(id: string) {
+    await apiDelete(`/webhooks/${id}`, token);
+    setWebhooks(await apiGet("/webhooks", token));
+  }
 
   async function connectMp() {
     try {
@@ -548,6 +581,50 @@ export default function SettingsView({ token, isManager }: { token: string; isMa
                 >
                   {snippetCopied ? "Copiado! ✓" : "Copiar código"}
                 </button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border bg-white p-3">
+              <div className="text-sm font-medium text-slate-700">🔌 Integrações (API + Webhooks)</div>
+              <div className="mt-1 text-xs text-slate-500">Conecte ao Make, N8N, Zapier. Gere uma chave e use <code className="rounded bg-slate-100 px-1">POST https://solutions-api.onrender.com/api/v1/contacts</code> com o header <code className="rounded bg-slate-100 px-1">Authorization: Bearer SUA_CHAVE</code>.</div>
+
+              {newKey && (
+                <div className="mt-2 rounded-xl border border-emerald-300 bg-emerald-50 p-2 text-xs">
+                  <div className="font-medium text-emerald-800">⚠️ Guarde esta chave agora — ela só aparece uma vez:</div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <input readOnly value={newKey} onFocus={(e) => e.currentTarget.select()} className="flex-1 rounded-lg border bg-white px-2 py-1 font-mono text-[11px]" />
+                    <button onClick={() => { navigator.clipboard?.writeText(newKey); }} className="rounded-lg bg-slate-900 px-2 py-1 text-white">Copiar</button>
+                    <button onClick={() => setNewKey("")} className="rounded-lg border px-2 py-1">Ok</button>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-600">Chaves de API ({apiKeys.length})</span>
+                <button onClick={genApiKey} className="rounded-lg bg-slate-900 px-2 py-1 text-xs text-white hover:bg-slate-800">+ Gerar chave</button>
+              </div>
+              <div className="mt-1 space-y-1">
+                {apiKeys.map((k) => (
+                  <div key={k.id} className="flex items-center justify-between rounded-lg border px-2 py-1 text-xs">
+                    <span className="truncate"><strong>{k.name}</strong> · <span className="font-mono text-slate-500">{k.prefix}…</span></span>
+                    <button onClick={() => delApiKey(k.id)} className="shrink-0 text-red-500 hover:text-red-700">Revogar</button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3 text-xs font-medium text-slate-600">Webhooks de saída ({webhooks.length})</div>
+              <div className="text-[11px] text-slate-400">A Solutions avisa essa URL quando chega mensagem ou novo contato.</div>
+              <div className="mt-1 flex gap-2">
+                <input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://hook.make.com/..." className="flex-1 rounded-lg border px-2 py-1 text-xs outline-none" />
+                <button onClick={addWebhook} className="rounded-lg border px-2 py-1 text-xs hover:bg-slate-50">Adicionar</button>
+              </div>
+              <div className="mt-1 space-y-1">
+                {webhooks.map((h) => (
+                  <div key={h.id} className="flex items-center justify-between rounded-lg border px-2 py-1 text-xs">
+                    <span className="truncate text-slate-600">{h.url}</span>
+                    <button onClick={() => delWebhook(h.id)} className="shrink-0 text-red-500 hover:text-red-700">Remover</button>
+                  </div>
+                ))}
               </div>
             </div>
 

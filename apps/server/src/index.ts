@@ -28,6 +28,8 @@ import { widgetRouter } from "./routes/widget";
 import { resellerRouter } from "./routes/reseller";
 import { resellerPayRouter } from "./routes/resellerPay";
 import { flowsRouter } from "./routes/flows";
+import { publicApiRouter } from "./routes/publicApi";
+import { apiKeysRouter } from "./routes/apiKeys";
 
 dotenv.config();
 
@@ -84,6 +86,8 @@ app.use(orgsRouter);
 app.use(resellerRouter);
 app.use(resellerPayRouter);
 app.use(flowsRouter);
+app.use(apiKeysRouter);
+app.use("/api/v1", publicApiRouter);
 app.use(adminRouter);
 app.use(presenceRouter);
 app.use(chatRouter);
