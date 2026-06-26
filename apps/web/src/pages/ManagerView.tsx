@@ -36,6 +36,8 @@ export default function ManagerView({ token, hideValues = false }: { token: stri
   if (!data) return <Card><div className="p-6 text-sm text-slate-500">Carregando painel…</div></Card>;
 
   const t = data.totals;
+  // Previsão de fechamento = pipeline em aberto × taxa de ganho histórica (forecast simples, sem IA)
+  const forecast = Math.round((t.pipelineValue || 0) * ((t.winRate || 0) / 100));
 
   return (
     <div className="space-y-4">
@@ -52,6 +54,19 @@ export default function ManagerView({ token, hideValues = false }: { token: stri
             <KPI title="Pipeline aberto" value={money(t.pipelineValue)} hint={`${t.dealsOpen} em andamento`} />
             <KPI title="Taxa de ganho" value={t.winRate !== null ? `${t.winRate}%` : "0%"} hint={`${t.dealsLost} perdidos`} />
             <KPI title="Leads" value={t.contacts} hint={`${t.tasksOpen} tarefas abertas`} />
+          </div>
+        </div>
+      </Card>
+
+      <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-white">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-600">🔮 Previsão de fechamento</div>
+            <div className="mt-1 text-3xl font-bold text-emerald-700">{money(forecast)}</div>
+          </div>
+          <div className="text-right text-xs text-slate-500">
+            <div>de <strong>{money(t.pipelineValue)}</strong> em aberto</div>
+            <div>× <strong>{t.winRate ?? 0}%</strong> de taxa de ganho histórica</div>
           </div>
         </div>
       </Card>
