@@ -73,6 +73,8 @@ app.use(authRouter);
 // Webhooks públicos (sem JWT) — devem vir ANTES dos routers que aplicam requireAuth
 app.use(webhooksRouter);
 app.use(mpWebhookRouter);
+// API pública autenticada por CHAVE (/api/v1) — precisa vir ANTES dos routers com requireAuth (JWT), senão o JWT intercepta
+app.use("/api/v1", publicApiRouter);
 app.use(crudRouter);
 app.use(analyticsRouter);
 app.use(channelsRouter);
@@ -87,7 +89,6 @@ app.use(resellerRouter);
 app.use(resellerPayRouter);
 app.use(flowsRouter);
 app.use(apiKeysRouter);
-app.use("/api/v1", publicApiRouter);
 app.use(adminRouter);
 app.use(presenceRouter);
 app.use(chatRouter);
