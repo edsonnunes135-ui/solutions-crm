@@ -153,6 +153,23 @@ model Webhook {
   @@index([orgId])
 }
 
+// Agenda: compromissos/eventos agendados (reuniões, ligações, follow-ups com hora).
+model Appointment {
+  id         String    @id @default(cuid())
+  orgId      String
+  title      String
+  contactId  String?
+  assigneeId String?
+  startAt    DateTime
+  endAt      DateTime?
+  location   String?
+  notes      String?
+  status     String    @default("scheduled") // scheduled | done | canceled
+  createdAt  DateTime  @default(now())
+
+  @@index([orgId, startAt])
+}
+
 // Canais de comunicação ao vivo: "team" (gestor↔vendedores da empresa) e
 // "support" (gestor da empresa ↔ CEO da plataforma).
 model ChatMessage {

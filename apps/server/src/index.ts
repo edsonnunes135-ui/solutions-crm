@@ -30,6 +30,7 @@ import { resellerPayRouter } from "./routes/resellerPay";
 import { flowsRouter } from "./routes/flows";
 import { publicApiRouter } from "./routes/publicApi";
 import { apiKeysRouter } from "./routes/apiKeys";
+import { appointmentsRouter } from "./routes/appointments";
 
 dotenv.config();
 
@@ -89,6 +90,7 @@ app.use(resellerRouter);
 app.use(resellerPayRouter);
 app.use(flowsRouter);
 app.use(apiKeysRouter);
+app.use(appointmentsRouter);
 app.use(adminRouter);
 app.use(presenceRouter);
 app.use(chatRouter);

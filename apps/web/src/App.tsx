@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MessageSquare, Users, KanbanSquare, Zap, LineChart as LineChartIcon,
   Sparkles, Search, Plus, Send, Clock, CheckCircle2, AlertCircle, Filter,
-  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video, Bot, CreditCard,
+  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video, Bot, CreditCard, Calendar,
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
@@ -14,6 +14,7 @@ import ManagerView from "./pages/ManagerView";
 import SettingsView from "./pages/SettingsView";
 import AutomationsView from "./pages/AutomationsView";
 import FlowsView from "./pages/FlowsView";
+import AgendaView from "./pages/AgendaView";
 import CampaignsView from "./pages/CampaignsView";
 import CopilotView from "./pages/CopilotView";
 import HomeView from "./pages/HomeView";
@@ -27,7 +28,7 @@ import SuporteView from "./pages/SuporteView";
 import SuporteCeoView from "./pages/SuporteCeoView";
 import ReunioesView from "./pages/ReunioesView";
 
-type View = "home" | "inbox" | "pipeline" | "contacts" | "automations" | "flows" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions" | "acessos" | "templates" | "presenca" | "vendedores" | "comunicacao" | "suporte" | "suporte-ceo" | "reunioes";
+type View = "home" | "inbox" | "pipeline" | "contacts" | "agenda" | "automations" | "flows" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions" | "acessos" | "templates" | "presenca" | "vendedores" | "comunicacao" | "suporte" | "suporte-ceo" | "reunioes";
 
 // ── UI primitives ────────────────────────────────────────────────────────────
 
@@ -983,6 +984,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
               <NavItem icon={<Home className="h-4 w-4" />} active={view === "home"} onClick={() => setView("home")} label="Início" />
               <NavItem icon={<MessageSquare className="h-4 w-4" />} active={view === "inbox"} onClick={() => setView("inbox")} label="Inbox" />
               <NavItem icon={<Users className="h-4 w-4" />} active={view === "contacts"} onClick={() => setView("contacts")} label="Contatos" />
+              <NavItem icon={<Calendar className="h-4 w-4" />} active={view === "agenda"} onClick={() => setView("agenda")} label="Agenda" />
 
               <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Vendas</div>
               <NavItem icon={<KanbanSquare className="h-4 w-4" />} active={view === "pipeline"} onClick={() => setView("pipeline")} label="Funil" />
@@ -1485,6 +1487,9 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
             {/* ── FLUXOS DA IA (no-code) ── */}
             {view === "flows" && <FlowsView token={token} />}
+
+            {/* ── AGENDA ── */}
+            {view === "agenda" && <AgendaView token={token} />}
 
             {/* ── CAMPAIGNS ── */}
             {view === "campaigns" && <CampaignsView token={token} contacts={contacts} />}
