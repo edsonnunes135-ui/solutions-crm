@@ -94,6 +94,18 @@ app.use(presenceRouter);
 app.use(chatRouter);
 app.use(meetingsRouter);
 
+// Observabilidade: error handler global — captura erros não tratados das rotas,
+// loga com stack e devolve um 500 limpo (em vez de vazar stack ou pendurar a request).
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("[erro]", err?.message ?? err, err?.stack ? `\n${err.stack}` : "");
+  if (res.headersSent) return;
+  res.status(500).json({ error: "internal_error" });
+});
+
+// Loga falhas globais em vez de derrubar o processo silenciosamente.
+process.on("unhandledRejection", (reason: any) => console.error("[unhandledRejection]", reason?.message ?? reason));
+process.on("uncaughtException", (err: any) => console.error("[uncaughtException]", err?.message ?? err, err?.stack ?? ""));
+
 const port = Number(process.env.PORT || 4000);
 app.listen(port, () => {
   console.log(`Solutions API running on http://localhost:${port}`);
