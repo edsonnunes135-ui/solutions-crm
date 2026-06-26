@@ -170,6 +170,21 @@ model Appointment {
   @@index([orgId, startAt])
 }
 
+// Propostas / orçamentos. publicId = link público pro cliente ver e aceitar.
+model Proposal {
+  id          String   @id @default(cuid())
+  orgId       String
+  publicId    String   @unique
+  contactName String?
+  title       String
+  items       Json     @default("[]") // [{ description, qty, unitPrice }]
+  total       Float    @default(0)
+  status      String   @default("draft") // draft | sent | accepted | rejected
+  createdAt   DateTime @default(now())
+
+  @@index([orgId])
+}
+
 // Canais de comunicação ao vivo: "team" (gestor↔vendedores da empresa) e
 // "support" (gestor da empresa ↔ CEO da plataforma).
 model ChatMessage {

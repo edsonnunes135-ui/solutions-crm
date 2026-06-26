@@ -62,3 +62,28 @@ publicRouter.get("/public/plans/:resellerOrgId", async (req, res) => {
   });
   res.json(plans);
 });
+
+// Proposta pública — o cliente abre o link e vê a proposta (com a marca da empresa)
+publicRouter.get("/public/proposal/:publicId", async (req, res) => {
+  const p = await prisma.proposal.findUnique({ where: { publicId: String(req.params.publicId) } });
+  if (!p) return res.status(404).json({ error: "not_found" });
+  const s = await prisma.orgSetting.findUnique({ where: { orgId: p.orgId }, select: { brandName: true, brandColor: true } });
+  const org = await prisma.organization.findUnique({ where: { id: p.orgId }, select: { name: true } });
+  res.json({
+    title: p.title,
+    contactName: p.contactName,
+    items: p.items,
+    total: p.total,
+    status: p.status,
+    brandName: s?.brandName || org?.name || "Proposta",
+    brandColor: s?.brandColor || "#0ea5e9",
+  });
+});
+
+// Cliente aceita a proposta pelo link
+publicRouter.post("/public/proposal/:publicId/accept", async (req, res) => {
+  const p = await prisma.proposal.findUnique({ where: { publicId: String(req.params.publicId) } });
+  if (!p) return res.status(404).json({ error: "not_found" });
+  if (p.status !== "accepted") await prisma.proposal.update({ where: { id: p.id }, data: { status: "accepted" } });
+  res.json({ ok: true });
+});

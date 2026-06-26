@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MessageSquare, Users, KanbanSquare, Zap, LineChart as LineChartIcon,
   Sparkles, Search, Plus, Send, Clock, CheckCircle2, AlertCircle, Filter,
-  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video, Bot, CreditCard, Calendar,
+  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video, Bot, CreditCard, Calendar, FileText,
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
@@ -15,6 +15,8 @@ import SettingsView from "./pages/SettingsView";
 import AutomationsView from "./pages/AutomationsView";
 import FlowsView from "./pages/FlowsView";
 import AgendaView from "./pages/AgendaView";
+import ProposalsView from "./pages/ProposalsView";
+import PublicProposal from "./pages/PublicProposal";
 import CampaignsView from "./pages/CampaignsView";
 import CopilotView from "./pages/CopilotView";
 import HomeView from "./pages/HomeView";
@@ -28,7 +30,7 @@ import SuporteView from "./pages/SuporteView";
 import SuporteCeoView from "./pages/SuporteCeoView";
 import ReunioesView from "./pages/ReunioesView";
 
-type View = "home" | "inbox" | "pipeline" | "contacts" | "agenda" | "automations" | "flows" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions" | "acessos" | "templates" | "presenca" | "vendedores" | "comunicacao" | "suporte" | "suporte-ceo" | "reunioes";
+type View = "home" | "inbox" | "pipeline" | "contacts" | "agenda" | "proposals" | "automations" | "flows" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions" | "acessos" | "templates" | "presenca" | "vendedores" | "comunicacao" | "suporte" | "suporte-ceo" | "reunioes";
 
 // ── UI primitives ────────────────────────────────────────────────────────────
 
@@ -177,8 +179,12 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 // ── Main App ─────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const params = new URLSearchParams(window.location.search);
+  // Proposta pública (?proposta=<publicId>) — o cliente vê sem login
+  const proposta = params.get("proposta") || "";
+  if (proposta) return <PublicProposal publicId={proposta} />;
   // white-label: link do parceiro (?marca=<orgId>) abre direto o cadastro com a marca dele
-  const marca = new URLSearchParams(window.location.search).get("marca") || "";
+  const marca = params.get("marca") || "";
   const [authed, setAuthed] = useState(!!getToken());
   const [auth, setAuth] = useState<null | "login" | "register">(null);
 
@@ -988,6 +994,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
               <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Vendas</div>
               <NavItem icon={<KanbanSquare className="h-4 w-4" />} active={view === "pipeline"} onClick={() => setView("pipeline")} label="Funil" />
+              {isManager && <NavItem icon={<FileText className="h-4 w-4 text-slate-500" />} active={view === "proposals"} onClick={() => setView("proposals")} label="Propostas" />}
               {isManager && <NavItem icon={<Megaphone className="h-4 w-4 text-orange-500" />} active={view === "campaigns"} onClick={() => setView("campaigns")} label="Campanhas" />}
               {isManager && <NavItem icon={<Sparkles className="h-4 w-4 text-sky-500" />} active={view === "templates"} onClick={() => setView("templates")} label="Templates" />}
 
@@ -1490,6 +1497,9 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
             {/* ── AGENDA ── */}
             {view === "agenda" && <AgendaView token={token} />}
+
+            {/* ── PROPOSTAS ── */}
+            {view === "proposals" && <ProposalsView token={token} />}
 
             {/* ── CAMPAIGNS ── */}
             {view === "campaigns" && <CampaignsView token={token} contacts={contacts} />}
