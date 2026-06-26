@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { sendChannelMessage } from "./send";
 import { pushToOrg } from "./push";
+import { flowMatches } from "./flowMatch";
 
 type FlowStep = {
   type: "message" | "ask" | "action";
@@ -32,13 +33,9 @@ export async function runMatchingFlow(params: {
   });
   if (flows.length === 0) return false;
 
-  // normaliza minúsculas e remove acentos, pra "preço" casar com "preco"
-  const norm = (s: string) => (s || "").toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
-  const normText = norm(text);
   const match = flows.find((f) => {
     const triggers = Array.isArray(f.triggers) ? (f.triggers as unknown[]).map((t) => String(t)) : [];
-    if (triggers.length === 0) return isFirstInbound; // sem gatilho = fluxo de boas-vindas (1ª mensagem)
-    return triggers.some((t) => t && normText.includes(norm(t)));
+    return flowMatches(triggers, text, isFirstInbound);
   });
   if (!match) return false;
 

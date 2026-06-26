@@ -7,7 +7,8 @@
     "worker": "tsx watch src/worker.ts",
     "build": "prisma generate",
     "start": "prisma migrate deploy && tsx src/index.ts",
-    "cron": "tsx src/cron.ts"
+    "cron": "tsx src/cron.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
@@ -35,6 +36,7 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^25.5.0",
     "@types/web-push": "^3.6.4",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.9"
   }
 }
