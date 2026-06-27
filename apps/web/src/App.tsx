@@ -268,12 +268,14 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
   // Command palette (Ctrl/Cmd + K)
   const [showPalette, setShowPalette] = useState(false);
   const [paletteQ, setPaletteQ] = useState("");
+  const [paletteSel, setPaletteSel] = useState(0);
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setShowPalette((p) => !p);
         setPaletteQ("");
+        setPaletteSel(0);
       }
       if (e.key === "Escape") setShowPalette(false);
     }
@@ -751,11 +753,15 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
       )}
 
       {showPalette && (() => {
-        const cmds: { label: string; view: View; manager?: boolean; ceo?: boolean }[] = [
+        type Cmd = { label: string; hint?: string; view?: View; action?: () => void; kind?: string; manager?: boolean; ceo?: boolean };
+        const cmds: Cmd[] = [
           { label: "Início", view: "home" },
           { label: "Inbox / Conversas", view: "inbox" },
           { label: "Funil de vendas", view: "pipeline" },
           { label: "Contatos", view: "contacts" },
+          { label: "Agenda", view: "agenda" },
+          { label: "Propostas / Orçamentos", view: "proposals", manager: true },
+          { label: "Fluxos da IA", view: "flows", manager: true },
           { label: "Automações", view: "automations" },
           { label: "BI / Analytics", view: "analytics" },
           { label: "Copiloto de IA", view: "ai" },
@@ -771,27 +777,43 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
           { label: "Faturamento Solutions", view: "solutions", ceo: true },
           { label: "Acessos", view: "acessos", ceo: true },
           { label: "Presença", view: "presenca", ceo: true },
+          // Ações rápidas (não são telas)
+          { label: dark ? "Tema: modo claro" : "Tema: modo escuro", hint: "Ação", kind: "action", action: () => setDark((d) => !d) },
+          { label: "Sair da conta", hint: "Ação", kind: "action", action: logout },
         ];
         const list = cmds.filter((c) => (!c.manager || isManager) && (!c.ceo || isCeo) && c.label.toLowerCase().includes(paletteQ.toLowerCase()));
+        const sel = Math.min(paletteSel, Math.max(0, list.length - 1));
+        const run = (c?: Cmd) => { if (!c) return; setShowPalette(false); if (c.action) c.action(); else if (c.view) setView(c.view); };
         return (
           <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 p-4 pt-24" onClick={() => setShowPalette(false)}>
-            <div className="w-full max-w-lg overflow-hidden rounded-2xl border bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-2 border-b px-4 py-3">
+            <div className="w-full max-w-lg overflow-hidden rounded-2xl border bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-2 border-b px-4 py-3 dark:border-slate-700">
                 <Command className="h-4 w-4 text-slate-400" />
                 <input
                   autoFocus
                   value={paletteQ}
-                  onChange={(e) => setPaletteQ(e.target.value)}
+                  onChange={(e) => { setPaletteQ(e.target.value); setPaletteSel(0); }}
                   placeholder="Buscar tela ou ação…"
-                  className="w-full bg-transparent text-sm outline-none"
-                  onKeyDown={(e) => { if (e.key === "Enter" && list[0]) { setView(list[0].view); setShowPalette(false); } }}
+                  className="w-full bg-transparent text-sm outline-none dark:text-slate-100"
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowDown") { e.preventDefault(); setPaletteSel((i) => Math.min(i + 1, list.length - 1)); }
+                    else if (e.key === "ArrowUp") { e.preventDefault(); setPaletteSel((i) => Math.max(i - 1, 0)); }
+                    else if (e.key === "Enter") { e.preventDefault(); run(list[sel]); }
+                  }}
                 />
+                <kbd className="rounded border px-1.5 py-0.5 text-[10px] text-slate-400 dark:border-slate-600">esc</kbd>
               </div>
               <div className="max-h-80 overflow-auto p-2">
                 {list.length === 0 && <div className="p-3 text-sm text-slate-500">Nada encontrado.</div>}
-                {list.map((c) => (
-                  <button key={c.view + c.label} onClick={() => { setView(c.view); setShowPalette(false); }} className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100">
-                    {c.label}
+                {list.map((c, i) => (
+                  <button
+                    key={(c.view ?? "") + c.label}
+                    onMouseEnter={() => setPaletteSel(i)}
+                    onClick={() => run(c)}
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm dark:text-slate-100 ${i === sel ? "bg-slate-100 dark:bg-slate-700" : "hover:bg-slate-50 dark:hover:bg-slate-700/60"}`}
+                  >
+                    <span>{c.label}</span>
+                    {c.hint && <span className="text-[10px] uppercase tracking-wide text-slate-400">{c.hint}</span>}
                   </button>
                 ))}
               </div>
