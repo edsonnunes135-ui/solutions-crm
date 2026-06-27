@@ -333,10 +333,13 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
   useEffect(() => { reload(); }, [reload]);
 
-  // Auto-refresh a cada 30s para manter dados atualizados entre dispositivos
+  // Auto-refresh para manter dados atualizados entre dispositivos.
+  // Adaptativo: só recarrega com a aba visível (poupa o servidor) e atualiza ao voltar o foco.
   useEffect(() => {
-    const t = setInterval(reload, 30000);
-    return () => clearInterval(t);
+    const t = setInterval(() => { if (!document.hidden) reload(); }, 30000);
+    const onVis = () => { if (!document.hidden) reload(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", onVis); };
   }, [reload]);
 
   // ── Selected contact / inbox ──────────────────────────────────────────────
@@ -468,6 +471,31 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
       .then((n) => setNotes(Array.isArray(n) ? n : []))
       .catch(() => setNotes([]));
   }, [selectedContact?.id, token]);
+
+  // Tempo "quase-real" no inbox: enquanto a conversa está aberta e a aba visível,
+  // re-busca só as mensagens dela a cada 6s. Só assume a verdade do servidor quando
+  // surge algo novo (não apaga a mensagem otimista que acabou de ser enviada).
+  useEffect(() => {
+    if (view !== "inbox" || !selectedContact) return;
+    const cid = selectedContact.id;
+    async function tick() {
+      if (document.hidden) return;
+      try {
+        const r = await apiGet(`/contacts/${cid}/messages`, token);
+        setThread((prev) => {
+          if (!prev.conversationId || prev.conversationId !== r.conversationId) return prev;
+          const real = prev.messages.filter((m: any) => !String(m.id).startsWith("tmp_"));
+          const prevLast = real[real.length - 1]?.id ?? null;
+          const newLast = r.messages[r.messages.length - 1]?.id ?? null;
+          return newLast === prevLast ? prev : r;
+        });
+      } catch { /* silencioso */ }
+    }
+    const t = setInterval(tick, 6000);
+    const onVis = () => { if (!document.hidden) tick(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", onVis); };
+  }, [view, selectedContact?.id, token]);
 
   async function addNote() {
     const text = noteDraft.trim();
