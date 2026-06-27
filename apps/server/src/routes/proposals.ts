@@ -25,6 +25,7 @@ const ItemSchema = z.object({
 const Body = z.object({
   title: z.string().min(1).max(160),
   contactName: z.string().max(120).optional(),
+  contactId: z.string().max(60).optional(),
   items: z.array(ItemSchema).min(1).max(50),
 });
 proposalsRouter.post("/proposals", manager, async (req: AuthedRequest, res) => {
@@ -32,8 +33,15 @@ proposalsRouter.post("/proposals", manager, async (req: AuthedRequest, res) => {
   if (!parsed.success) return res.status(400).json({ error: "invalid_body", issues: parsed.error.issues });
   const total = parsed.data.items.reduce((s, i) => s + i.qty * i.unitPrice, 0);
   const publicId = crypto.randomBytes(9).toString("hex");
+  // Se vier contactId, confirma que é um contato do mesmo org (isolamento) e usa o nome dele.
+  let contactId: string | null = null;
+  let contactName = parsed.data.contactName || null;
+  if (parsed.data.contactId) {
+    const c = await prisma.contact.findFirst({ where: { id: parsed.data.contactId, orgId: req.user!.orgId }, select: { id: true, name: true } });
+    if (c) { contactId = c.id; contactName = contactName || c.name; }
+  }
   const p = await prisma.proposal.create({
-    data: { orgId: req.user!.orgId, publicId, title: parsed.data.title, contactName: parsed.data.contactName || null, items: parsed.data.items as any, total, status: "draft" },
+    data: { orgId: req.user!.orgId, publicId, contactId, title: parsed.data.title, contactName, items: parsed.data.items as any, total, status: "draft" },
   });
   res.json(p);
 });

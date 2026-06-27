@@ -80,6 +80,29 @@ publicRouter.get("/public/proposal/:publicId", async (req, res) => {
   });
 });
 
+// Portal do cliente (magic-link) — o cliente abre o link único e vê as propostas dele,
+// com a marca da empresa. Acesso por token não-adivinhável (sem login).
+publicRouter.get("/public/portal/:token", async (req, res) => {
+  const token = String(req.params.token);
+  if (!token) return res.status(404).json({ error: "not_found" });
+  const c = await prisma.contact.findUnique({ where: { portalToken: token }, select: { id: true, name: true, orgId: true } });
+  if (!c) return res.status(404).json({ error: "not_found" });
+  const s = await prisma.orgSetting.findUnique({ where: { orgId: c.orgId }, select: { brandName: true, brandColor: true } });
+  const org = await prisma.organization.findUnique({ where: { id: c.orgId }, select: { name: true } });
+  const proposals = await prisma.proposal.findMany({
+    where: { orgId: c.orgId, contactId: c.id, status: { not: "draft" } },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: { publicId: true, title: true, total: true, status: true, createdAt: true },
+  });
+  res.json({
+    contactName: c.name,
+    brandName: s?.brandName || org?.name || "Portal do cliente",
+    brandColor: s?.brandColor || "#0ea5e9",
+    proposals,
+  });
+});
+
 // Cliente aceita a proposta pelo link
 publicRouter.post("/public/proposal/:publicId/accept", async (req, res) => {
   const p = await prisma.proposal.findUnique({ where: { publicId: String(req.params.publicId) } });

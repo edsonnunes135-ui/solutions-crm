@@ -17,6 +17,7 @@ import FlowsView from "./pages/FlowsView";
 import AgendaView from "./pages/AgendaView";
 import ProposalsView from "./pages/ProposalsView";
 import PublicProposal from "./pages/PublicProposal";
+import PublicPortal from "./pages/PublicPortal";
 import CampaignsView from "./pages/CampaignsView";
 import CopilotView from "./pages/CopilotView";
 import HomeView from "./pages/HomeView";
@@ -183,6 +184,9 @@ export default function App() {
   // Proposta pública (?proposta=<publicId>) — o cliente vê sem login
   const proposta = params.get("proposta") || "";
   if (proposta) return <PublicProposal publicId={proposta} />;
+  // Portal do cliente (?portal=<token>) — o cliente vê todas as propostas dele, sem login
+  const portal = params.get("portal") || "";
+  if (portal) return <PublicPortal token={portal} />;
   // white-label: link do parceiro (?marca=<orgId>) abre direto o cadastro com a marca dele
   const marca = params.get("marca") || "";
   const [authed, setAuthed] = useState(!!getToken());

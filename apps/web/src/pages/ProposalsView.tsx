@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { apiGet, apiPost, apiPatch, apiDelete } from "../lib/api";
-import { FileText, Plus, Trash2 } from "lucide-react";
+import { FileText, Plus, Trash2, UserCircle } from "lucide-react";
 
 type Item = { description: string; qty: number; unitPrice: number };
 type Proposal = { id: string; publicId: string; title: string; contactName?: string | null; items: Item[]; total: number; status: string };
+type Contact = { id: string; name: string };
 
 const money = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -15,16 +16,39 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 export default function ProposalsView({ token }: { token: string }) {
   const [items, setItems] = useState<Proposal[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<{ title: string; contactName: string; lines: Item[] }>({ title: "", contactName: "", lines: [{ description: "", qty: 1, unitPrice: 0 }] });
+  const [form, setForm] = useState<{ title: string; contactId: string; lines: Item[] }>({ title: "", contactId: "", lines: [{ description: "", qty: 1, unitPrice: 0 }] });
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState("");
+  // Portal do cliente
+  const [portalContactId, setPortalContactId] = useState("");
+  const [portalLink, setPortalLink] = useState("");
+  const [portalBusy, setPortalBusy] = useState(false);
+  const [portalCopied, setPortalCopied] = useState(false);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const linkOf = (pid: string) => `${origin}/?proposta=${pid}`;
 
   async function load() { const r = await apiGet("/proposals", token).catch(() => []); setItems(Array.isArray(r) ? r : []); }
-  useEffect(() => { load(); }, [token]);
+  useEffect(() => {
+    load();
+    apiGet("/contacts", token).then((r) => setContacts(Array.isArray(r) ? r.map((c: any) => ({ id: c.id, name: c.name })) : [])).catch(() => {});
+  }, [token]);
+
+  async function genPortalLink() {
+    if (!portalContactId || portalBusy) return;
+    setPortalBusy(true);
+    try {
+      const r = await apiPost(`/contacts/${portalContactId}/portal-link`, {}, token);
+      const link = `${origin}/?portal=${r.token}`;
+      setPortalLink(link);
+      navigator.clipboard?.writeText(link);
+      setPortalCopied(true);
+      setTimeout(() => setPortalCopied(false), 2000);
+    } catch { alert("Não foi possível gerar o link do portal."); }
+    finally { setPortalBusy(false); }
+  }
 
   const total = form.lines.reduce((s, l) => s + (Number(l.qty) || 0) * (Number(l.unitPrice) || 0), 0);
   function setLine(i: number, patch: Partial<Item>) { setForm({ ...form, lines: form.lines.map((l, idx) => (idx === i ? { ...l, ...patch } : l)) }); }
@@ -37,8 +61,8 @@ export default function ProposalsView({ token }: { token: string }) {
     if (!form.title.trim() || lines.length === 0 || busy) return;
     setBusy(true);
     try {
-      await apiPost("/proposals", { title: form.title, contactName: form.contactName || undefined, items: lines }, token);
-      setForm({ title: "", contactName: "", lines: [{ description: "", qty: 1, unitPrice: 0 }] });
+      await apiPost("/proposals", { title: form.title, contactId: form.contactId || undefined, items: lines }, token);
+      setForm({ title: "", contactId: "", lines: [{ description: "", qty: 1, unitPrice: 0 }] });
       setCreating(false);
       await load();
     } catch { alert("Não foi possível criar a proposta."); }
@@ -62,7 +86,10 @@ export default function ProposalsView({ token }: { token: string }) {
         <form onSubmit={create} className="space-y-3 rounded-2xl border bg-white p-3">
           <div className="grid gap-2 sm:grid-cols-2">
             <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Título (ex.: Proposta de serviço)" className="rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200" />
-            <input value={form.contactName} onChange={(e) => setForm({ ...form, contactName: e.target.value })} placeholder="Cliente (nome)" className="rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200" />
+            <select value={form.contactId} onChange={(e) => setForm({ ...form, contactId: e.target.value })} className="rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200">
+              <option value="">— Cliente (opcional) —</option>
+              {contacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
           </div>
           <div className="space-y-2">
             {form.lines.map((l, i) => (
@@ -82,6 +109,25 @@ export default function ProposalsView({ token }: { token: string }) {
           </div>
         </form>
       )}
+
+      {/* Portal do cliente — link único onde o cliente vê todas as propostas dele */}
+      <div className="rounded-2xl border bg-white p-3">
+        <div className="flex items-center gap-2">
+          <UserCircle className="h-4 w-4 text-sky-500" />
+          <span className="text-sm font-medium text-slate-800">Portal do cliente</span>
+        </div>
+        <p className="mt-1 text-xs text-slate-500">Gere um link único onde o cliente acompanha todas as propostas dele (sem login).</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <select value={portalContactId} onChange={(e) => { setPortalContactId(e.target.value); setPortalLink(""); }} className="min-w-[180px] flex-1 rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200">
+            <option value="">Escolha um cliente…</option>
+            {contacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <button onClick={genPortalLink} disabled={!portalContactId || portalBusy} className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50">
+            {portalBusy ? "…" : portalCopied ? "Copiado! ✓" : "Gerar e copiar link"}
+          </button>
+        </div>
+        {portalLink && <div className="mt-2 truncate rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">{portalLink}</div>}
+      </div>
 
       {items.length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-white p-8 text-center text-sm text-slate-500">Nenhuma proposta ainda. Crie a primeira. 📄</div>

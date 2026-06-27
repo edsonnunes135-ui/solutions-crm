@@ -175,6 +175,7 @@ model Proposal {
   id          String   @id @default(cuid())
   orgId       String
   publicId    String   @unique
+  contactId   String? // vínculo opcional com o contato (aparece no portal do cliente)
   contactName String?
   title       String
   items       Json     @default("[]") // [{ description, qty, unitPrice }]
@@ -183,6 +184,7 @@ model Proposal {
   createdAt   DateTime @default(now())
 
   @@index([orgId])
+  @@index([contactId])
 }
 
 // Canais de comunicação ao vivo: "team" (gestor↔vendedores da empresa) e
@@ -246,6 +248,7 @@ model Contact {
   aiScore               Int? // 0-100, calculado pela IA
   aiTemperature         String? // quente/morno/frio
   aiScoreReason         String? // explicação do score (explainable AI)
+  portalToken           String?      @unique // link mágico do portal do cliente
   tags                  ContactTag[]
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
