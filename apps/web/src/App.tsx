@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MessageSquare, Users, KanbanSquare, Zap, LineChart as LineChartIcon,
   Sparkles, Search, Plus, Send, Clock, CheckCircle2, AlertCircle, Filter,
-  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video, Bot, CreditCard, Calendar, FileText, ChevronDown, Palette,
+  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video, Bot, CreditCard, Calendar, FileText, ChevronDown, Palette, TrendingUp, Wallet, Percent,
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
@@ -129,12 +129,17 @@ function PriorityPill({ p }: { p: string }) {
   return <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${cls}`}>{icon} {label}</span>;
 }
 
-function KPI({ title, value, hint }: any) {
+function KPI({ title, value, hint, icon, tint = "bg-slate-100 text-slate-600" }: any) {
   return (
-    <div className="rounded-2xl border p-4">
-      <div className="text-xs text-slate-500">{title}</div>
-      <div className="mt-1 text-2xl font-semibold">{value}</div>
-      <div className="mt-1 text-sm text-slate-500">{hint}</div>
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-2.5">
+        {icon && <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tint}`}>{icon}</span>}
+        <div className="min-w-0">
+          <div className="text-xs text-slate-500">{title}</div>
+          <div className="truncate text-xl font-bold leading-tight">{value}</div>
+        </div>
+      </div>
+      {hint && <div className="mt-2 text-xs text-slate-500">{hint}</div>}
     </div>
   );
 }
@@ -1619,12 +1624,12 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-3 md:grid-cols-3">
-                      <KPI title="Leads (total)" value={kpis?.leads ?? contacts.length} hint="Contatos cadastrados" />
-                      <KPI title="Negócios abertos" value={kpis?.openDeals ?? deals.filter((d) => d.status === "open").length} hint="No funil ativo" />
-                      <KPI title="Pipeline" value={money(kpis?.pipelineValue ?? pipelineValue)} hint="Valor em aberto" />
-                      <KPI title="Ganhos" value={won.length} hint={money(wonValue)} />
-                      <KPI title="Conversão" value={`${conv}%`} hint="Ganhos / total de negócios" />
-                      <KPI title="Ticket médio" value={money(ticket)} hint="Por negócio ganho" />
+                      <KPI title="Leads (total)" value={kpis?.leads ?? contacts.length} hint="Contatos cadastrados" icon={<Users className="h-4 w-4" />} tint="bg-blue-50 text-blue-600" />
+                      <KPI title="Negócios abertos" value={kpis?.openDeals ?? deals.filter((d) => d.status === "open").length} hint="No funil ativo" icon={<KanbanSquare className="h-4 w-4" />} tint="bg-violet-50 text-violet-600" />
+                      <KPI title="Pipeline" value={money(kpis?.pipelineValue ?? pipelineValue)} hint="Valor em aberto" icon={<TrendingUp className="h-4 w-4" />} tint="bg-emerald-50 text-emerald-600" />
+                      <KPI title="Ganhos" value={won.length} hint={money(wonValue)} icon={<Wallet className="h-4 w-4" />} tint="bg-amber-50 text-amber-600" />
+                      <KPI title="Conversão" value={`${conv}%`} hint="Ganhos / total de negócios" icon={<Percent className="h-4 w-4" />} tint="bg-sky-50 text-sky-600" />
+                      <KPI title="Ticket médio" value={money(ticket)} hint="Por negócio ganho" icon={<CreditCard className="h-4 w-4" />} tint="bg-indigo-50 text-indigo-600" />
                     </div>
                     <div className="my-4 h-px bg-slate-200" />
                     <div className="mb-2 text-sm font-medium text-slate-700">Leads e ganhos na semana</div>
@@ -1633,12 +1638,12 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                         <AreaChart data={analyticsSeries} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
                           <defs>
                             <linearGradient id="gLeads" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.32} />
-                              <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                              <stop offset="0%" stopColor="#6366f1" stopOpacity={0.32} />
+                              <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                             </linearGradient>
                             <linearGradient id="gWins" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#22c55e" stopOpacity={0.32} />
-                              <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                              <stop offset="0%" stopColor="#10b981" stopOpacity={0.32} />
+                              <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                             </linearGradient>
                           </defs>
                           <CartesianGrid vertical={false} stroke="#eef2f7" />
@@ -1646,8 +1651,8 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                           <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} tick={{ fontSize: 12, fill: "#94a3b8" }} />
                           <Tooltip contentStyle={chartTooltip} cursor={{ stroke: "#cbd5e1", strokeWidth: 1 }} />
                           <Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 12, paddingTop: 6 }} />
-                          <Area type="monotone" dataKey="leads" name="Leads" stroke="#3b82f6" strokeWidth={2.5} fill="url(#gLeads)" dot={false} activeDot={{ r: 4 }} />
-                          <Area type="monotone" dataKey="wins" name="Ganhos" stroke="#22c55e" strokeWidth={2.5} fill="url(#gWins)" dot={false} activeDot={{ r: 4 }} />
+                          <Area type="monotone" dataKey="leads" name="Leads" stroke="#6366f1" strokeWidth={2.5} fill="url(#gLeads)" dot={false} activeDot={{ r: 4 }} />
+                          <Area type="monotone" dataKey="wins" name="Ganhos" stroke="#10b981" strokeWidth={2.5} fill="url(#gWins)" dot={false} activeDot={{ r: 4 }} />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
