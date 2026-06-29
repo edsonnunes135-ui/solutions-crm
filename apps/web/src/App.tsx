@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MessageSquare, Users, KanbanSquare, Zap, LineChart as LineChartIcon,
   Sparkles, Search, Plus, Send, Clock, CheckCircle2, AlertCircle, Filter,
-  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video, Bot, CreditCard, Calendar, FileText,
+  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video, Bot, CreditCard, Calendar, FileText, ChevronDown,
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
@@ -32,6 +32,17 @@ import SuporteCeoView from "./pages/SuporteCeoView";
 import ReunioesView from "./pages/ReunioesView";
 
 type View = "home" | "inbox" | "pipeline" | "contacts" | "agenda" | "proposals" | "automations" | "flows" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions" | "acessos" | "templates" | "presenca" | "vendedores" | "comunicacao" | "suporte" | "suporte-ceo" | "reunioes";
+
+// Grupos do menu lateral (recolhíveis). Mapeia cada grupo às suas telas — usado
+// pra abrir automaticamente o grupo da tela ativa e lembrar o que está aberto.
+const NAV_GROUP_VIEWS: Record<string, View[]> = {
+  atendimento: ["home", "inbox", "contacts", "agenda"],
+  vendas: ["pipeline", "proposals", "campaigns", "templates"],
+  inteligencia: ["ai", "flows", "automations", "analytics"],
+  comunicacao: ["comunicacao", "reunioes", "suporte"],
+  gestao: ["manager", "vendedores", "settings"],
+  plataforma: ["solutions", "acessos", "presenca", "suporte-ceo"],
+};
 
 // ── UI primitives ────────────────────────────────────────────────────────────
 
@@ -85,6 +96,22 @@ function NavItem({ icon, label, active, onClick }: any) {
       <div className="flex items-center gap-2">{icon}<span className="font-medium">{label}</span></div>
       <span className="text-xs text-slate-400">›</span>
     </button>
+  );
+}
+
+// Grupo de menu recolhível — clica no título pra abrir/fechar (lembra a preferência).
+function NavGroup({ title, open, onToggle, accent = "text-slate-400", children }: any) {
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        className={`flex w-full items-center justify-between px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide ${accent} hover:text-slate-600`}
+      >
+        <span>{title}</span>
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "" : "-rotate-90"}`} />
+      </button>
+      {open && <div className="space-y-0.5">{children}</div>}
+    </div>
   );
 }
 
@@ -245,6 +272,15 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
     document.documentElement.classList.toggle("dark", dark);
     localStorage.setItem("solutions_dark", dark ? "1" : "0");
   }, [dark]);
+
+  // Menu lateral: grupos recolhíveis. Por padrão só Atendimento + Vendas abertos
+  // (menos rolagem); o resto o usuário abre quando quiser e fica lembrado.
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    try { const s = localStorage.getItem("solutions_nav_groups"); if (s) return JSON.parse(s); } catch { /* ignore */ }
+    return { atendimento: true, vendas: true, inteligencia: false, comunicacao: false, gestao: false, plataforma: false };
+  });
+  useEffect(() => { localStorage.setItem("solutions_nav_groups", JSON.stringify(openGroups)); }, [openGroups]);
+  const toggleGroup = (id: string) => setOpenGroups((g) => ({ ...g, [id]: !g[id] }));
 
   // Aviso amigável de upgrade quando uma ação esbarra num limite/recurso do plano
   useEffect(() => {
@@ -1040,46 +1076,48 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
               <div className="text-sm text-slate-500">{user?.email}</div>
             </CardHeader>
             <CardContent className="space-y-0.5">
-              <div className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Atendimento</div>
-              <NavItem icon={<Home className="h-4 w-4" />} active={view === "home"} onClick={() => setView("home")} label="Início" />
-              <NavItem icon={<MessageSquare className="h-4 w-4" />} active={view === "inbox"} onClick={() => setView("inbox")} label="Inbox" />
-              <NavItem icon={<Users className="h-4 w-4" />} active={view === "contacts"} onClick={() => setView("contacts")} label="Contatos" />
-              <NavItem icon={<Calendar className="h-4 w-4" />} active={view === "agenda"} onClick={() => setView("agenda")} label="Agenda" />
+              <NavGroup title="Atendimento" open={!!openGroups.atendimento || NAV_GROUP_VIEWS.atendimento.includes(view)} onToggle={() => toggleGroup("atendimento")}>
+                <NavItem icon={<Home className="h-4 w-4" />} active={view === "home"} onClick={() => setView("home")} label="Início" />
+                <NavItem icon={<MessageSquare className="h-4 w-4" />} active={view === "inbox"} onClick={() => setView("inbox")} label="Inbox" />
+                <NavItem icon={<Users className="h-4 w-4" />} active={view === "contacts"} onClick={() => setView("contacts")} label="Contatos" />
+                <NavItem icon={<Calendar className="h-4 w-4" />} active={view === "agenda"} onClick={() => setView("agenda")} label="Agenda" />
+              </NavGroup>
 
-              <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Vendas</div>
-              <NavItem icon={<KanbanSquare className="h-4 w-4" />} active={view === "pipeline"} onClick={() => setView("pipeline")} label="Funil" />
-              {isManager && <NavItem icon={<FileText className="h-4 w-4 text-slate-500" />} active={view === "proposals"} onClick={() => setView("proposals")} label="Propostas" />}
-              {isManager && <NavItem icon={<Megaphone className="h-4 w-4 text-orange-500" />} active={view === "campaigns"} onClick={() => setView("campaigns")} label="Campanhas" />}
-              {isManager && <NavItem icon={<Sparkles className="h-4 w-4 text-sky-500" />} active={view === "templates"} onClick={() => setView("templates")} label="Templates" />}
+              <NavGroup title="Vendas" open={!!openGroups.vendas || NAV_GROUP_VIEWS.vendas.includes(view)} onToggle={() => toggleGroup("vendas")}>
+                <NavItem icon={<KanbanSquare className="h-4 w-4" />} active={view === "pipeline"} onClick={() => setView("pipeline")} label="Funil" />
+                {isManager && <NavItem icon={<FileText className="h-4 w-4 text-slate-500" />} active={view === "proposals"} onClick={() => setView("proposals")} label="Propostas" />}
+                {isManager && <NavItem icon={<Megaphone className="h-4 w-4 text-orange-500" />} active={view === "campaigns"} onClick={() => setView("campaigns")} label="Campanhas" />}
+                {isManager && <NavItem icon={<Sparkles className="h-4 w-4 text-sky-500" />} active={view === "templates"} onClick={() => setView("templates")} label="Templates" />}
+              </NavGroup>
 
-              <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Inteligência</div>
-              <NavItem icon={<Sparkles className="h-4 w-4" />} active={view === "ai"} onClick={() => setView("ai")} label="Copiloto IA" />
-              {isManager && <NavItem icon={<Bot className="h-4 w-4 text-sky-500" />} active={view === "flows"} onClick={() => setView("flows")} label="Fluxos da IA" />}
-              <NavItem icon={<Zap className="h-4 w-4" />} active={view === "automations"} onClick={() => setView("automations")} label="Automações" />
-              <NavItem icon={<LineChartIcon className="h-4 w-4" />} active={view === "analytics"} onClick={() => setView("analytics")} label="BI / Relatórios" />
+              <NavGroup title="Inteligência" open={!!openGroups.inteligencia || NAV_GROUP_VIEWS.inteligencia.includes(view)} onToggle={() => toggleGroup("inteligencia")}>
+                <NavItem icon={<Sparkles className="h-4 w-4" />} active={view === "ai"} onClick={() => setView("ai")} label="Copiloto IA" />
+                {isManager && <NavItem icon={<Bot className="h-4 w-4 text-sky-500" />} active={view === "flows"} onClick={() => setView("flows")} label="Fluxos da IA" />}
+                <NavItem icon={<Zap className="h-4 w-4" />} active={view === "automations"} onClick={() => setView("automations")} label="Automações" />
+                <NavItem icon={<LineChartIcon className="h-4 w-4" />} active={view === "analytics"} onClick={() => setView("analytics")} label="BI / Relatórios" />
+              </NavGroup>
 
-              <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Comunicação</div>
-              <NavItem icon={<MessagesSquare className="h-4 w-4 text-teal-500" />} active={view === "comunicacao"} onClick={() => setView("comunicacao")} label="Chat da equipe" />
-              <NavItem icon={<Video className="h-4 w-4 text-rose-500" />} active={view === "reunioes"} onClick={() => setView("reunioes")} label="Reuniões (vídeo)" />
-              {isManager && <NavItem icon={<LifeBuoy className="h-4 w-4 text-sky-500" />} active={view === "suporte"} onClick={() => setView("suporte")} label="Suporte" />}
+              <NavGroup title="Comunicação" open={!!openGroups.comunicacao || NAV_GROUP_VIEWS.comunicacao.includes(view)} onToggle={() => toggleGroup("comunicacao")}>
+                <NavItem icon={<MessagesSquare className="h-4 w-4 text-teal-500" />} active={view === "comunicacao"} onClick={() => setView("comunicacao")} label="Chat da equipe" />
+                <NavItem icon={<Video className="h-4 w-4 text-rose-500" />} active={view === "reunioes"} onClick={() => setView("reunioes")} label="Reuniões (vídeo)" />
+                {isManager && <NavItem icon={<LifeBuoy className="h-4 w-4 text-sky-500" />} active={view === "suporte"} onClick={() => setView("suporte")} label="Suporte" />}
+              </NavGroup>
 
               {isManager && (
-                <>
-                  <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Gestão</div>
+                <NavGroup title="Gestão" open={!!openGroups.gestao || NAV_GROUP_VIEWS.gestao.includes(view)} onToggle={() => toggleGroup("gestao")}>
                   <NavItem icon={<Crown className="h-4 w-4 text-amber-500" />} active={view === "manager"} onClick={() => setView("manager")} label="Painel do gestor" />
                   <NavItem icon={<UserCheck className="h-4 w-4 text-emerald-500" />} active={view === "vendedores"} onClick={() => setView("vendedores")} label="Vendedores" />
                   <NavItem icon={<SettingsIcon className="h-4 w-4" />} active={view === "settings"} onClick={() => setView("settings")} label="Configurações" />
-                </>
+                </NavGroup>
               )}
 
               {isCeo && (
-                <>
-                  <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-purple-400">Plataforma</div>
+                <NavGroup title="Plataforma" accent="text-purple-400" open={!!openGroups.plataforma || NAV_GROUP_VIEWS.plataforma.includes(view)} onToggle={() => toggleGroup("plataforma")}>
                   <NavItem icon={<Building2 className="h-4 w-4 text-purple-500" />} active={view === "solutions"} onClick={() => setView("solutions")} label="Faturamento Solutions" />
                   <NavItem icon={<Users className="h-4 w-4 text-purple-500" />} active={view === "acessos"} onClick={() => setView("acessos")} label="Acessos" />
                   <NavItem icon={<UserCheck className="h-4 w-4 text-purple-500" />} active={view === "presenca"} onClick={() => setView("presenca")} label="Presença" />
                   <NavItem icon={<LifeBuoy className="h-4 w-4 text-purple-500" />} active={view === "suporte-ceo"} onClick={() => setView("suporte-ceo")} label="Suporte aos clientes" />
-                </>
+                </NavGroup>
               )}
 
               <div className="my-3 h-px bg-slate-200" />
