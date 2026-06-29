@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MessageSquare, Users, KanbanSquare, Zap, LineChart as LineChartIcon,
   Sparkles, Search, Plus, Send, Clock, CheckCircle2, AlertCircle, Filter,
-  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video, Bot, CreditCard, Calendar, FileText, ChevronDown,
+  Tag, Building2, Phone, Instagram, LogOut, X, Crown, Settings as SettingsIcon, Trash2, Eye, EyeOff, Megaphone, UserCheck, Home, Moon, Sun, Command, MessagesSquare, LifeBuoy, Video, Bot, CreditCard, Calendar, FileText, ChevronDown, Palette,
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { apiGet, apiPatch, apiPost, apiDelete } from "./lib/api";
@@ -12,6 +12,7 @@ import LandingPage from "./pages/LandingPage";
 import TechBackground from "./components/TechBackground";
 import ManagerView from "./pages/ManagerView";
 import SettingsView from "./pages/SettingsView";
+import MarcaRevendaView from "./pages/MarcaRevendaView";
 import AutomationsView from "./pages/AutomationsView";
 import FlowsView from "./pages/FlowsView";
 import AgendaView from "./pages/AgendaView";
@@ -31,7 +32,7 @@ import SuporteView from "./pages/SuporteView";
 import SuporteCeoView from "./pages/SuporteCeoView";
 import ReunioesView from "./pages/ReunioesView";
 
-type View = "home" | "inbox" | "pipeline" | "contacts" | "agenda" | "proposals" | "automations" | "flows" | "analytics" | "ai" | "manager" | "settings" | "campaigns" | "solutions" | "acessos" | "templates" | "presenca" | "vendedores" | "comunicacao" | "suporte" | "suporte-ceo" | "reunioes";
+type View = "home" | "inbox" | "pipeline" | "contacts" | "agenda" | "proposals" | "automations" | "flows" | "analytics" | "ai" | "manager" | "settings" | "marca" | "campaigns" | "solutions" | "acessos" | "templates" | "presenca" | "vendedores" | "comunicacao" | "suporte" | "suporte-ceo" | "reunioes";
 
 // Grupos do menu lateral (recolhíveis). Mapeia cada grupo às suas telas — usado
 // pra abrir automaticamente o grupo da tela ativa e lembrar o que está aberto.
@@ -40,7 +41,7 @@ const NAV_GROUP_VIEWS: Record<string, View[]> = {
   vendas: ["pipeline", "proposals", "campaigns", "templates"],
   inteligencia: ["ai", "flows", "automations", "analytics"],
   comunicacao: ["comunicacao", "reunioes", "suporte"],
-  gestao: ["manager", "vendedores", "settings"],
+  gestao: ["manager", "vendedores", "marca", "settings"],
   plataforma: ["solutions", "acessos", "presenca", "suporte-ceo"],
 };
 
@@ -841,6 +842,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
           { label: "Vendedores (presença)", view: "vendedores", manager: true },
           { label: "Campanhas", view: "campaigns", manager: true },
           { label: "Templates de funil", view: "templates", manager: true },
+          { label: "Marca & Revenda", view: "marca", manager: true },
           { label: "Configurações", view: "settings", manager: true },
           { label: "Faturamento Solutions", view: "solutions", ceo: true },
           { label: "Acessos", view: "acessos", ceo: true },
@@ -1107,6 +1109,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                 <NavGroup title="Gestão" open={!!openGroups.gestao || NAV_GROUP_VIEWS.gestao.includes(view)} onToggle={() => toggleGroup("gestao")}>
                   <NavItem icon={<Crown className="h-4 w-4 text-amber-500" />} active={view === "manager"} onClick={() => setView("manager")} label="Painel do gestor" />
                   <NavItem icon={<UserCheck className="h-4 w-4 text-emerald-500" />} active={view === "vendedores"} onClick={() => setView("vendedores")} label="Vendedores" />
+                  <NavItem icon={<Palette className="h-4 w-4 text-pink-500" />} active={view === "marca"} onClick={() => setView("marca")} label="Marca & Revenda" />
                   <NavItem icon={<SettingsIcon className="h-4 w-4" />} active={view === "settings"} onClick={() => setView("settings")} label="Configurações" />
                 </NavGroup>
               )}
@@ -1709,6 +1712,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
             {/* ── SETTINGS ── */}
             {view === "settings" && <SettingsView token={token} isManager={isManager} />}
+            {view === "marca" && <MarcaRevendaView token={token} />}
 
             {/* ── AI ── */}
             {view === "ai" && <CopilotView token={token} />}
