@@ -56,19 +56,19 @@ function Pill({ children }: { children: React.ReactNode }) {
 }
 
 function Button({ children, onClick, variant = "solid", className = "", disabled = false, type = "button" }: any) {
-  const base = "inline-flex items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition";
-  const solid = "bg-slate-900 text-white hover:bg-slate-800";
-  const outline = "border bg-white hover:bg-slate-50";
+  const base = "inline-flex items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:pointer-events-none";
+  const solid = "bg-slate-900 text-white shadow-sm hover:bg-slate-800 focus-visible:ring-slate-400";
+  const outline = "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-slate-300";
   return (
     <button type={type} disabled={disabled} onClick={onClick}
-      className={`${base} ${variant === "outline" ? outline : solid} ${disabled ? "opacity-50" : ""} ${className}`}>
+      className={`${base} ${variant === "outline" ? outline : solid} ${className}`}>
       {children}
     </button>
   );
 }
 
 function Card({ children, className = "" }: any) {
-  return <div className={`rounded-2xl border bg-white ${className}`}>{children}</div>;
+  return <div className={`rounded-2xl border border-slate-200/80 bg-white shadow-sm ${className}`}>{children}</div>;
 }
 function CardHeader({ children, className = "" }: any) {
   return <div className={`p-4 pb-3 ${className}`}>{children}</div>;
@@ -80,14 +80,14 @@ function CardContent({ children, className = "" }: any) {
 function Input({ value, onChange, placeholder, className = "", type = "text", required = false }: any) {
   return (
     <input type={type} required={required} value={value} onChange={onChange} placeholder={placeholder}
-      className={`w-full rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200 ${className}`} />
+      className={`w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-300 focus:ring-2 focus:ring-slate-900/10 ${className}`} />
   );
 }
 
 function Textarea({ value, onChange, placeholder, className = "" }: any) {
   return (
     <textarea value={value} onChange={onChange} placeholder={placeholder}
-      className={`w-full rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200 ${className}`} />
+      className={`w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-300 focus:ring-2 focus:ring-slate-900/10 ${className}`} />
   );
 }
 
@@ -1147,6 +1147,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                 contacts={contacts}
                 deals={deals}
                 tasks={tasks}
+                series={series}
                 money={money}
                 onGo={(v) => setView(v as View)}
                 onSelectContact={(id) => setSelectedContactId(id)}
