@@ -250,20 +250,20 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
         </header>
 
         {/* HERO */}
-        <section className="relative mx-auto max-w-4xl px-4 py-24 text-center md:py-28">
-          <img src="/logo.jpeg" alt="Solutions" className="mx-auto mb-6 h-20 w-20 rounded-3xl object-cover ring-2 ring-white/20" />
+        <section className="relative mx-auto max-w-4xl px-4 py-16 text-center md:py-20">
+          <img src="/logo.jpeg" alt="Solutions" className="mx-auto mb-5 h-16 w-16 rounded-3xl object-cover ring-2 ring-white/20" />
           <div className="mb-3 inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-sky-300 backdrop-blur">
             <Sparkles className="h-3.5 w-3.5" /> {L.hero.badge}
           </div>
           <h1 className="text-4xl font-bold leading-tight md:text-6xl">
             {L.hero.title1}<br /><span className="bg-gradient-to-r from-sky-400 via-emerald-400 to-amber-400 bg-clip-text text-transparent">{L.hero.title2}</span>
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-300">{L.hero.subtitle}</p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-300">{L.hero.subtitle}</p>
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <button onClick={onSignup} className="rounded-2xl bg-sky-500 px-6 py-3 font-medium shadow-lg shadow-sky-500/20 transition hover:-translate-y-0.5 hover:bg-sky-400">{L.hero.cta}</button>
             <a href="#whitelabel" className="rounded-2xl border border-white/20 px-6 py-3 font-medium hover:bg-white/10">{L.hero.ctaSecondary}</a>
           </div>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400">
             <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5 text-emerald-400" /> {L.hero.noCard}</span>
             <span className="inline-flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> WhatsApp</span>
             <span className="inline-flex items-center gap-1"><Instagram className="h-3.5 w-3.5" /> Instagram</span>
@@ -283,7 +283,7 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
         </section>
 
         {/* WHITE-LABEL / REVENDA — proposta principal */}
-        <section id="whitelabel" className="border-y border-white/10 bg-gradient-to-b from-sky-500/10 to-transparent py-20">
+        <section id="whitelabel" className="border-y border-white/10 bg-gradient-to-b from-sky-500/10 to-transparent py-14">
           <div className="mx-auto max-w-5xl px-4">
             <div className="text-center">
               <div className="mb-3 inline-flex items-center gap-1 rounded-full border border-sky-400/30 bg-sky-500/10 px-3 py-1 text-xs text-sky-200">
@@ -306,12 +306,12 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
         </section>
 
         {/* RECURSOS */}
-        <section id="recursos" className="mx-auto max-w-6xl px-4 py-20">
+        <section id="recursos" className="mx-auto max-w-6xl px-4 py-14">
           <div className="text-center">
             <h2 className="text-3xl font-bold md:text-4xl">{L.features.title}</h2>
             <p className="mx-auto mt-3 max-w-2xl text-slate-300">{L.features.subtitle}</p>
           </div>
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
             {L.features.cards.map((c, i) => (
               <FeatureCard key={i} icon={featureIcons[i]} title={c.title} desc={c.desc} />
             ))}
@@ -319,7 +319,7 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
         </section>
 
         {/* IA AO VIVO (demo interativa) */}
-        <section id="ia" className="border-y border-white/10 bg-white/5 py-20 backdrop-blur">
+        <section id="ia" className="border-y border-white/10 bg-white/5 py-14 backdrop-blur">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 md:grid-cols-2">
             <div>
               <div className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-violet-300">
@@ -339,9 +339,9 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
         </section>
 
         {/* COMO FUNCIONA */}
-        <section className="mx-auto max-w-5xl px-4 py-20">
+        <section className="mx-auto max-w-5xl px-4 py-14">
           <h2 className="text-center text-3xl font-bold md:text-4xl">{L.steps.title}</h2>
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
+          <div className="mt-8 grid gap-6 md:grid-cols-3">
             {L.steps.items.map((s, i) => (
               <div key={i} className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur transition hover:bg-white/10">
                 <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-sky-500">{stepIcons[i]}</div>
@@ -369,7 +369,7 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
         </section>
 
         {/* PLANOS */}
-        <section id="planos" className="mx-auto max-w-6xl px-4 py-20">
+        <section id="planos" className="mx-auto max-w-6xl px-4 py-16">
           <div className="text-center">
             <h2 className="text-3xl font-bold md:text-4xl">{L.plans.title}</h2>
             <p className="mx-auto mt-3 max-w-2xl text-slate-300">{L.plans.subtitle}</p>
@@ -445,7 +445,7 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
         </section>
 
         {/* FAQ */}
-        <section id="faq" className="mx-auto max-w-3xl px-4 py-20">
+        <section id="faq" className="mx-auto max-w-3xl px-4 py-14">
           <h2 className="text-center text-3xl font-bold md:text-4xl">{L.faq.title}</h2>
           <div className="mt-8 space-y-3">
             {L.faq.items.map((f, i) => (
@@ -455,7 +455,7 @@ export default function LandingPage({ onEnter, onSignup }: Props) {
         </section>
 
         {/* CTA FINAL */}
-        <section className="border-t border-white/10 bg-gradient-to-b from-transparent to-slate-900/70 py-20">
+        <section className="border-t border-white/10 bg-gradient-to-b from-transparent to-slate-900/70 py-16">
           <div className="mx-auto max-w-3xl px-4 text-center">
             <h2 className="text-3xl font-bold md:text-4xl">{L.cta.title}</h2>
             <p className="mt-3 text-slate-300">{L.cta.subtitle}</p>
