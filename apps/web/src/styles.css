@@ -48,3 +48,30 @@ html:not(.dark) .app-shell :is(
   .bg-white, .bg-slate-50, .bg-slate-100, .bg-sky-50, .bg-amber-50,
   .bg-red-50, .bg-green-50, .bg-violet-50, .bg-blue-50, .bg-emerald-50
 ) { color: #0f172a; }
+
+/* ── Modo escuro: superfícies pastel ──────────────────────────────────────
+   Sem isto, caixas com fundo pastel (bg-*-50) ficavam claras no escuro e o
+   texto (claro por herança) sumia. Remapeia o fundo p/ um tom escuro e os
+   textos "fortes" (text-*-900/800/700) p/ tons claros legíveis. */
+html.dark :is(
+  .bg-sky-50, .bg-blue-50, .bg-indigo-50, .bg-violet-50, .bg-purple-50,
+  .bg-emerald-50, .bg-green-50, .bg-teal-50, .bg-amber-50, .bg-yellow-50,
+  .bg-orange-50, .bg-red-50, .bg-rose-50, .bg-pink-50
+) { background-color: #16223a !important; }
+
+html.dark :is(.text-violet-900, .text-violet-800, .text-violet-700, .text-purple-900, .text-purple-800, .text-purple-700, .text-indigo-900, .text-indigo-700) { color: #c4b5fd !important; }
+html.dark :is(.text-sky-900, .text-sky-800, .text-sky-700, .text-blue-900, .text-blue-800, .text-blue-700) { color: #7dd3fc !important; }
+html.dark :is(.text-emerald-900, .text-emerald-800, .text-emerald-700, .text-green-900, .text-green-800, .text-green-700, .text-teal-700) { color: #6ee7b7 !important; }
+html.dark :is(.text-amber-900, .text-amber-800, .text-amber-700, .text-yellow-800, .text-orange-700) { color: #fcd34d !important; }
+html.dark :is(.text-red-900, .text-red-800, .text-red-700, .text-rose-700, .text-pink-700) { color: #fca5a5 !important; }
+
+/* ── Fundo da área de conversa (estilo mensageiro) ────────────────────────── */
+.chat-bg {
+  background-color: #f5f7fb;
+  background-image: radial-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+html.dark .chat-bg {
+  background-color: #0e1726 !important;
+  background-image: radial-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+}

@@ -1012,7 +1012,7 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
         </Modal>
       )}
 
-      <div className="relative z-10 mx-auto max-w-7xl p-4 md:p-6">
+      <div className="relative z-10 mx-auto max-w-[1600px] p-4 md:p-6">
         <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -1311,8 +1311,8 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="rounded-2xl border p-3">
-                      <div className="h-[340px] overflow-auto pr-1">
+                    <div className="chat-bg overflow-hidden rounded-2xl border">
+                      <div className="h-[340px] overflow-y-auto overflow-x-hidden p-3">
                         {thread.messages.length === 0 ? (
                           <p className="text-sm text-slate-500">
                             Nenhuma mensagem ainda. O histórico aparece aqui quando o contato mandar mensagem pelo WhatsApp/Instagram conectado.
@@ -1321,9 +1321,9 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                           <div className="space-y-2">
                             {thread.messages.map((m: any) => (
                               <div key={m.id} className={`flex ${m.direction === "outbound" ? "justify-end" : "justify-start"}`}>
-                                <div className={`max-w-[85%] rounded-2xl border px-3 py-2 ${m.direction === "outbound" ? "bg-slate-900 text-white" : "bg-white"}`}>
-                                  <div className="text-sm whitespace-pre-wrap">{m.text}</div>
-                                  <div className={`mt-1 text-xs ${m.direction === "outbound" ? "text-slate-300" : "text-slate-400"}`}>
+                                <div className={`max-w-[78%] min-w-0 break-words rounded-2xl px-3 py-2 shadow-sm [overflow-wrap:anywhere] ${m.direction === "outbound" ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-800"}`}>
+                                  <div className="whitespace-pre-wrap break-words text-sm">{m.text}</div>
+                                  <div className={`mt-1 text-right text-[11px] ${m.direction === "outbound" ? "text-slate-300" : "text-slate-400"}`}>
                                     {new Date(m.sentAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                                   </div>
                                 </div>
