@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Crown, TrendingUp, TrendingDown, Users, Inbox, Wallet, Percent, Sparkles } from "lucide-react";
 import { apiGet } from "../lib/api";
 import { roleLabel } from "../lib/roles";
+import TeamCard from "../components/TeamCard";
 
 function currencyBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -172,6 +173,9 @@ export default function ManagerView({ token, hideValues = false }: { token: stri
           </div>
         </Card>
       </div>
+
+      {/* Equipe e acessos — movido de Configurações pra cá (gestão de pessoas é gestão) */}
+      <TeamCard token={token} />
     </div>
   );
 }
