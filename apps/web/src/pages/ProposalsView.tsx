@@ -76,14 +76,17 @@ export default function ProposalsView({ token }: { token: string }) {
     <div className="space-y-4 p-1">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900"><FileText className="h-5 w-5 text-sky-500" /> Propostas / Orçamentos</h1>
+          <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 text-white"><FileText className="h-4 w-4" /></span>
+            Propostas / Orçamentos
+          </h1>
           <p className="mt-1 text-sm text-slate-500">Monte um orçamento e mande o link pro cliente ver e aceitar.</p>
         </div>
         <button onClick={() => setCreating((c) => !c)} className="inline-flex items-center gap-1 rounded-xl bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500"><Plus className="h-4 w-4" /> Nova proposta</button>
       </div>
 
       {creating && (
-        <form onSubmit={create} className="space-y-3 rounded-2xl border bg-white p-3">
+        <form onSubmit={create} className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
           <div className="grid gap-2 sm:grid-cols-2">
             <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Título (ex.: Proposta de serviço)" className="rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200" />
             <select value={form.contactId} onChange={(e) => setForm({ ...form, contactId: e.target.value })} className="rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200">
@@ -111,7 +114,7 @@ export default function ProposalsView({ token }: { token: string }) {
       )}
 
       {/* Portal do cliente — link único onde o cliente vê todas as propostas dele */}
-      <div className="rounded-2xl border bg-white p-3">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
         <div className="flex items-center gap-2">
           <UserCircle className="h-4 w-4 text-sky-500" />
           <span className="text-sm font-medium text-slate-800">Portal do cliente</span>
@@ -130,11 +133,11 @@ export default function ProposalsView({ token }: { token: string }) {
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed bg-white p-8 text-center text-sm text-slate-500">Nenhuma proposta ainda. Crie a primeira. 📄</div>
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">Nenhuma proposta ainda. Crie a primeira. 📄</div>
       ) : (
         <div className="space-y-2">
           {items.map((p) => (
-            <div key={p.id} className="rounded-2xl border bg-white p-3">
+            <div key={p.id} className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">

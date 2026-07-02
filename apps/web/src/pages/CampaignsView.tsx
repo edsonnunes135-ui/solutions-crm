@@ -3,7 +3,7 @@ import { Megaphone, Send } from "lucide-react";
 import { apiGet, apiPost } from "../lib/api";
 
 function Card({ children, className = "" }: any) {
-  return <div className={`rounded-2xl border bg-white ${className}`}>{children}</div>;
+  return <div className={`rounded-2xl border border-slate-200/80 bg-white shadow-sm ${className}`}>{children}</div>;
 }
 
 interface Props {
@@ -60,14 +60,15 @@ export default function CampaignsView({ token, contacts }: Props) {
 
   return (
     <div className="space-y-4">
+      <div>
+        <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white"><Megaphone className="h-4 w-4" /></span>
+          Campanhas em massa
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">Dispare uma mensagem para vários contatos de uma vez, filtrando por tag e temperatura da IA.</p>
+      </div>
       <Card>
-        <div className="p-4 pb-3">
-          <div className="flex items-center gap-2 text-base font-semibold">
-            <Megaphone className="h-5 w-5 text-orange-500" /> Campanhas em massa
-          </div>
-          <div className="text-sm text-slate-500">Dispare uma mensagem para vários contatos de uma vez, filtrando por tag</div>
-        </div>
-        <div className="p-4 pt-0">
+        <div className="p-4">
           <form onSubmit={send} className="space-y-3 max-w-2xl">
             <div className="grid gap-3 md:grid-cols-3">
               <div>

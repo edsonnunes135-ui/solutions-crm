@@ -1422,20 +1422,25 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
             {/* ── PIPELINE ── */}
             {view === "pipeline" && (
               <div>
-                <div className="mb-4 flex items-center justify-between gap-2">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    {pipelines.length > 1 ? (
-                      <select
-                        value={activePipeline?.id ?? ""}
-                        onChange={(e) => setSelectedPipelineId(e.target.value)}
-                        className="rounded-2xl border px-3 py-1.5 text-base font-semibold outline-none focus:ring-2 focus:ring-slate-200"
-                      >
-                        {pipelines.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                      </select>
-                    ) : (
-                      <h2 className="text-base font-semibold">{activePipeline?.name ?? "Funil"}</h2>
-                    )}
-                    <p className="text-sm text-slate-500">{deals.filter((d) => stages.some((s: any) => s.id === d.stageId)).length} negócios neste funil</p>
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-500 text-white"><KanbanSquare className="h-4 w-4" /></span>
+                      {pipelines.length > 1 ? (
+                        <select
+                          value={activePipeline?.id ?? ""}
+                          onChange={(e) => setSelectedPipelineId(e.target.value)}
+                          className="rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-lg font-semibold outline-none focus:ring-2 focus:ring-slate-900/10"
+                        >
+                          {pipelines.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                      ) : (
+                        <h1 className="text-xl font-semibold text-slate-900">{activePipeline?.name ?? "Funil"}</h1>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {deals.filter((d) => stages.some((s: any) => s.id === d.stageId)).length} negócios · {money(deals.filter((d) => d.status === "open" && stages.some((s: any) => s.id === d.stageId)).reduce((a, d) => a + (d.value ?? 0), 0))} em aberto
+                    </p>
                   </div>
                   <Button className="gap-2" onClick={() => setShowNewDeal(true)}>
                     <Plus className="h-4 w-4" /> Novo negócio
@@ -1448,60 +1453,65 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(stages.length, 5)}, minmax(0,1fr))` }}>
-                    {stages.map((s: any) => {
+                  <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(stages.length, 5)}, minmax(0,1fr))` }}>
+                    {stages.map((s: any, si: number) => {
                       const stageDeals = deals.filter((d) => d.stageId === s.id);
+                      const stageName = (s.name ?? "").toLowerCase();
+                      // Cor da coluna: ganho=verde, perdido=vermelho, senão paleta por posição
+                      const accent = /ganho/.test(stageName) ? "bg-emerald-500" : /perdido/.test(stageName) ? "bg-rose-500" : ["bg-sky-500", "bg-indigo-500", "bg-violet-500", "bg-amber-500", "bg-teal-500"][si % 5];
                       return (
-                        <Card
+                        <div
                           key={s.id}
-                          className={dragOverStage === s.id ? "ring-2 ring-blue-400" : ""}
+                          onDragOver={(e) => { e.preventDefault(); setDragOverStage(s.id); }}
+                          onDragLeave={() => setDragOverStage((p) => (p === s.id ? null : p))}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setDragOverStage(null);
+                            const dealId = e.dataTransfer.getData("dealId");
+                            if (dealId) moveDeal(dealId, s.id);
+                          }}
+                          className={`flex min-h-[200px] flex-col overflow-hidden rounded-2xl border bg-slate-50/70 transition ${dragOverStage === s.id ? "border-indigo-400 ring-2 ring-indigo-200" : "border-slate-200/80"}`}
                         >
-                          <div
-                            onDragOver={(e) => { e.preventDefault(); setDragOverStage(s.id); }}
-                            onDragLeave={() => setDragOverStage((p) => (p === s.id ? null : p))}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              setDragOverStage(null);
-                              const dealId = e.dataTransfer.getData("dealId");
-                              if (dealId) moveDeal(dealId, s.id);
-                            }}
-                            className="min-h-full"
-                          >
-                            <CardHeader>
-                              <div className="flex items-center justify-between">
-                                <div className="text-base font-semibold">{s.name}</div>
-                                <Pill>{stageDeals.length}</Pill>
+                          <div className="border-b border-slate-200/70 bg-white px-3 py-2.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${accent}`} />
+                                <span className="truncate text-sm font-semibold text-slate-800">{s.name}</span>
                               </div>
-                              <div className="text-sm text-slate-500">{money(stageDeals.reduce((a, d) => a + (d.value ?? 0), 0))}</div>
-                            </CardHeader>
-                            <CardContent className="space-y-2">
-                              {stageDeals.map((d) => (
-                                <div
-                                  key={d.id}
-                                  draggable
-                                  onDragStart={(e) => e.dataTransfer.setData("dealId", d.id)}
-                                  className="cursor-grab rounded-2xl border p-3 transition hover:shadow-md active:cursor-grabbing"
-                                >
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="font-medium text-sm">{d.title}</div>
-                                    <button onClick={() => deleteDeal(d.id)} className="shrink-0 rounded p-1 text-slate-300 hover:bg-red-50 hover:text-red-600" title="Excluir negócio">
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                  </div>
-                                  <div className="mt-1 text-xs text-slate-500">{money(d.value ?? 0)}{d.contact?.name ? ` • ${d.contact.name}` : ""}</div>
-                                  <div className="mt-3 flex flex-wrap gap-1">
-                                    {stages.filter((x: any) => x.id !== s.id).slice(0, 3).map((x: any) => (
-                                      <Button key={x.id} variant="outline" className="px-2 py-1 text-xs" onClick={() => moveDeal(d.id, x.id)}>
-                                        → {x.name}
-                                      </Button>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
-                              {stageDeals.length === 0 && <div className="rounded-2xl border p-3 text-sm text-slate-400">Arraste um card aqui</div>}
-                            </CardContent>
+                              <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{stageDeals.length}</span>
+                            </div>
+                            <div className="mt-0.5 text-xs text-slate-500">{money(stageDeals.reduce((a, d) => a + (d.value ?? 0), 0))}</div>
                           </div>
-                        </Card>
+                          <div className="flex-1 space-y-2 p-2">
+                            {stageDeals.map((d) => (
+                              <div
+                                key={d.id}
+                                draggable
+                                onDragStart={(e) => e.dataTransfer.setData("dealId", d.id)}
+                                className="group cursor-grab rounded-xl border border-slate-200/80 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="text-sm font-medium text-slate-800">{d.title}</div>
+                                  <button onClick={() => deleteDeal(d.id)} className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:bg-red-50 hover:text-red-600" title="Excluir negócio">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                                <div className="mt-1 flex items-center justify-between gap-2 text-xs">
+                                  <span className="font-semibold text-emerald-700">{money(d.value ?? 0)}</span>
+                                  {d.contact?.name && <span className="truncate text-slate-400">{d.contact.name}</span>}
+                                </div>
+                                <div className="mt-2.5 flex flex-wrap gap-1">
+                                  {stages.filter((x: any) => x.id !== s.id).slice(0, 3).map((x: any) => (
+                                    <button key={x.id} onClick={() => moveDeal(d.id, x.id)} className="rounded-lg border border-slate-200 px-2 py-0.5 text-[11px] text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700">
+                                      → {x.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                            {stageDeals.length === 0 && <div className="rounded-xl border border-dashed border-slate-200 p-3 text-center text-xs text-slate-400">Arraste um card aqui</div>}
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
@@ -1511,56 +1521,62 @@ function CRMApp({ onLogout }: { onLogout: () => void }) {
 
             {/* ── CONTACTS ── */}
             {view === "contacts" && (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-base font-semibold">Contatos</div>
-                      <div className="text-sm text-slate-500">{contacts.length} cadastrados</div>
-                    </div>
-                    <Button className="gap-2" onClick={() => setShowNewContact(true)}>
-                      <Plus className="h-4 w-4" /> Novo contato
-                    </Button>
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 text-white"><Users className="h-4 w-4" /></span>
+                      Contatos
+                    </h1>
+                    <p className="mt-1 text-sm text-slate-500">{contacts.length} cadastrados{q ? ` · filtrando por “${q}”` : ""}</p>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {contacts.length === 0 ? (
-                    <div className="py-8 text-center text-sm text-slate-500">
+                  <Button className="gap-2" onClick={() => setShowNewContact(true)}>
+                    <Plus className="h-4 w-4" /> Novo contato
+                  </Button>
+                </div>
+                {contacts.length === 0 ? (
+                  <Card>
+                    <div className="py-10 text-center text-sm text-slate-500">
                       Nenhum contato ainda.{" "}
-                      <button onClick={() => setShowNewContact(true)} className="text-slate-900 underline">Criar o primeiro</button>
+                      <button onClick={() => setShowNewContact(true)} className="font-medium text-slate-900 underline">Criar o primeiro</button>
                     </div>
-                  ) : (
-                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                      {filteredContacts.map((c) => (
-                        <div key={c.id} className="rounded-2xl border p-4">
-                          <div className="flex items-start justify-between gap-2">
+                  </Card>
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {filteredContacts.map((c) => (
+                      <div key={c.id} className="group rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-600 to-slate-800 text-sm font-semibold text-white">
+                              {(c.name ?? "?").trim().charAt(0).toUpperCase()}
+                            </span>
                             <div className="min-w-0">
                               <div className="truncate font-medium">{c.name}</div>
-                              <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
-                                <Building2 className="h-4 w-4" />
-                                <span className="truncate">{c.company ?? ""}</span>
+                              <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                                {c.company && <><Building2 className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{c.company}</span></>}
+                                {!c.company && c.phone && <span className="truncate">{c.phone}</span>}
                               </div>
-                              {c.phone && <div className="mt-1 text-xs text-slate-400">{c.phone}</div>}
                             </div>
-                            {c.channel && <ChannelBadge c={c.channel} />}
                           </div>
-                          <div className="mt-3 flex flex-wrap gap-1">
-                            {(c.tags ?? []).map((t: string) => <Pill key={t}>{t}</Pill>)}
-                          </div>
-                          <div className="mt-4 flex gap-2">
-                            <Button variant="solid" className="text-xs" onClick={() => { setSelectedContactId(c.id); setView("inbox"); }}>
-                              Abrir conversa
-                            </Button>
-                            <Button variant="outline" className="text-xs" onClick={() => { setNewDealForm((p) => ({ ...p, contactId: c.id })); setShowNewDeal(true); }}>
-                              + Negócio
-                            </Button>
-                          </div>
+                          {c.channel && <ChannelBadge c={c.channel} />}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                        <div className="mt-3 flex min-h-[22px] flex-wrap items-center gap-1">
+                          <ScoreBadge c={c} />
+                          {(c.tags ?? []).slice(0, 4).map((t: string) => <Pill key={t}>{t}</Pill>)}
+                        </div>
+                        <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3">
+                          <Button variant="solid" className="flex-1 px-2 py-1.5 text-xs" onClick={() => { setSelectedContactId(c.id); setView("inbox"); }}>
+                            <MessageSquare className="h-3.5 w-3.5" /> Conversa
+                          </Button>
+                          <Button variant="outline" className="flex-1 px-2 py-1.5 text-xs" onClick={() => { setNewDealForm((p) => ({ ...p, contactId: c.id })); setShowNewDeal(true); }}>
+                            <Plus className="h-3.5 w-3.5" /> Negócio
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* ── TASKS inline ── (aparece em qualquer view como painel) */}

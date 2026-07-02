@@ -46,11 +46,14 @@ export default function AgendaView({ token }: { token: string }) {
   return (
     <div className="space-y-4 p-1">
       <div>
-        <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900"><Calendar className="h-5 w-5 text-sky-500" /> Agenda</h1>
+        <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-500 text-white"><Calendar className="h-4 w-4" /></span>
+          Agenda
+        </h1>
         <p className="mt-1 text-sm text-slate-500">Seus compromissos e reuniões, organizados por dia.</p>
       </div>
 
-      <form onSubmit={create} className="rounded-2xl border bg-white p-3">
+      <form onSubmit={create} className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
         <div className="grid gap-2 sm:grid-cols-2">
           <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Título (ex.: Reunião com João)" className="rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200" />
           <input type="datetime-local" value={form.startAt} onChange={(e) => setForm({ ...form, startAt: e.target.value })} className="rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-200" />
@@ -67,10 +70,12 @@ export default function AgendaView({ token }: { token: string }) {
       ) : (
         groups.map((g) => (
           <div key={g.label}>
-            <div className="mb-1 px-1 text-xs font-semibold uppercase tracking-wide text-slate-400">{g.label}</div>
+            <div className="mb-1.5 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <span className={`h-2 w-2 rounded-full ${g.label === "Hoje" ? "bg-sky-500" : "bg-slate-300"}`} /> {g.label}
+            </div>
             <div className="space-y-2">
               {g.items.map((a) => (
-                <div key={a.id} className={`flex items-start justify-between gap-2 rounded-2xl border bg-white p-3 ${a.status === "done" ? "opacity-60" : a.status === "canceled" ? "opacity-50 line-through" : ""}`}>
+                <div key={a.id} className={`flex items-start justify-between gap-2 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm transition hover:shadow-md ${a.status === "done" ? "opacity-60" : a.status === "canceled" ? "opacity-50 line-through" : ""}`}>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="rounded-lg bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">{fmtTime(a.startAt)}</span>
