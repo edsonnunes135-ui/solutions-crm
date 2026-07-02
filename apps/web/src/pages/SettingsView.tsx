@@ -6,7 +6,7 @@ import { enablePush, pushSupported } from "../lib/push";
 import { roleLabel } from "../lib/roles";
 
 function Card({ children, className = "" }: any) {
-  return <div className={`rounded-2xl border bg-white ${className}`}>{children}</div>;
+  return <div className={`rounded-2xl border border-slate-200/80 bg-white shadow-sm ${className}`}>{children}</div>;
 }
 
 function Input(props: any) {

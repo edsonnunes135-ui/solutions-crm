@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Building2 } from "lucide-react";
 import { apiGet, apiPut, apiPost, apiDelete } from "../lib/api";
 import { startImpersonation } from "../lib/auth";
 
@@ -127,7 +128,7 @@ export default function FaturamentoSolutions({ token, hideValues = false }: { to
     <div className="space-y-6 p-1">
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold text-slate-900">Faturamento da Solutions</h1>
+          <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 text-white"><Building2 className="h-4 w-4" /></span> Faturamento da Solutions</h1>
           <span className="rounded-full border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">CEO</span>
         </div>
         <p className="mt-1 text-sm text-slate-500">
@@ -137,7 +138,7 @@ export default function FaturamentoSolutions({ token, hideValues = false }: { to
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map((c) => (
-          <div key={c.label} className="rounded-2xl border bg-white p-4">
+          <div key={c.label} className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
             <div className="text-xs text-slate-500">{c.label}</div>
             <div className="mt-1 text-2xl font-semibold text-slate-900">{c.value}</div>
             <div className="mt-1 text-xs text-slate-400">{c.hint}</div>
@@ -145,7 +146,7 @@ export default function FaturamentoSolutions({ token, hideValues = false }: { to
         ))}
       </div>
 
-      <div className="rounded-2xl border bg-white p-4">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
         <div className="mb-1 text-sm font-medium text-slate-600">Faturamento por mês (últimos 12 meses)</div>
         <div className="mb-3 text-xs text-slate-400">Estimativa: cada assinatura ativa conta desde que entrou. {hideValues ? "Valores ocultos." : ""}</div>
         <div className="flex items-end gap-1.5" style={{ height: 120 }}>
@@ -161,7 +162,7 @@ export default function FaturamentoSolutions({ token, hideValues = false }: { to
         </div>
       </div>
 
-      <div className="rounded-2xl border bg-white p-4">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
         <div className="mb-3 text-sm font-medium text-slate-600">Empresas por plano</div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {["trial", "starter", "pro", "business"].map((k) => {
@@ -177,7 +178,7 @@ export default function FaturamentoSolutions({ token, hideValues = false }: { to
         </div>
       </div>
 
-      <div className="rounded-2xl border bg-white p-4">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
         <div className="mb-2 text-sm font-medium text-slate-600">📢 Aviso para o app inteiro</div>
         <div className="text-xs text-slate-500">Aparece como uma faixa no topo do app de todas as empresas e usuários. Use para manutenção, novidades, avisos.</div>
         <textarea
@@ -202,7 +203,7 @@ export default function FaturamentoSolutions({ token, hideValues = false }: { to
         </div>
       </div>
 
-      <div className="rounded-2xl border bg-white">
+      <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm">
         <div className="border-b px-4 py-3 text-sm font-medium text-slate-600">
           Empresas ({data.companies.length})
         </div>

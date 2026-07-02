@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Users } from "lucide-react";
 import { apiGet } from "../lib/api";
 import { roleLabel } from "../lib/roles";
 
@@ -39,7 +40,7 @@ export default function AcessosView({ token }: { token: string }) {
     <div className="space-y-4 p-1">
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold text-slate-900">Acessos</h1>
+          <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-500 text-white"><Users className="h-4 w-4" /></span> Acessos</h1>
           <span className="rounded-full border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">CEO</span>
         </div>
         <p className="mt-1 text-sm text-slate-500">
@@ -54,7 +55,7 @@ export default function AcessosView({ token }: { token: string }) {
         className="w-full rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200"
       />
 
-      <div className="rounded-2xl border bg-white">
+      <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

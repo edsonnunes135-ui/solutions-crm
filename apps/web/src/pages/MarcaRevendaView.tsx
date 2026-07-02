@@ -5,7 +5,7 @@ import { getUser, saveAuth } from "../lib/auth";
 import { roleLabel } from "../lib/roles";
 
 function Card({ children, className = "" }: any) {
-  return <div className={`rounded-2xl border bg-white ${className}`}>{children}</div>;
+  return <div className={`rounded-2xl border border-slate-200/80 bg-white shadow-sm ${className}`}>{children}</div>;
 }
 function Input(props: any) {
   return <input {...props} className={`w-full rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200 ${props.className ?? ""}`} />;
@@ -166,7 +166,7 @@ export default function MarcaRevendaView({ token }: { token: string }) {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900"><Palette className="h-5 w-5 text-pink-500" /> Marca & Revenda</h1>
+        <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 text-white"><Palette className="h-4 w-4" /></span> Marca & Revenda</h1>
         <p className="mt-1 text-sm text-slate-500">Sua marca própria (white-label) e a operação de revenda / agência.</p>
       </div>
 
@@ -242,7 +242,7 @@ export default function MarcaRevendaView({ token }: { token: string }) {
               </div>
             </div>
 
-            <div className="rounded-2xl border bg-white p-3">
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
               <div className="text-sm font-medium text-slate-700">🔌 Integrações (API + Webhooks)</div>
               <div className="mt-1 text-xs text-slate-500">Conecte ao Make, N8N, Zapier. Gere uma chave e use <code className="rounded bg-slate-100 px-1">POST https://solutions-api.onrender.com/api/v1/contacts</code> com o header <code className="rounded bg-slate-100 px-1">Authorization: Bearer SUA_CHAVE</code>.</div>
 
@@ -286,7 +286,7 @@ export default function MarcaRevendaView({ token }: { token: string }) {
               </div>
             </div>
 
-            <div className="rounded-2xl border bg-white p-3">
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
               <div className="text-sm font-medium text-slate-700">💳 Pagamentos (Mercado Pago)</div>
               {!mpStatus?.configured ? (
                 <div className="mt-1 text-xs text-slate-500">A cobrança ainda não foi ativada na plataforma. Em breve.</div>
@@ -304,7 +304,7 @@ export default function MarcaRevendaView({ token }: { token: string }) {
             </div>
 
             {feeStatus?.configured && (
-              <div className="rounded-2xl border bg-white p-3">
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
                 <div className="text-sm font-medium text-slate-700">🏦 Taxa da plataforma (Solutions)</div>
                 <div className="mt-1 text-xs text-slate-500">
                   Seus clientes pagam <strong>você</strong> 100% (assinatura mensal). A Solutions cobra <strong>{feeStatus.feePercent}%</strong> da sua receita como taxa da plataforma (cobrança mensal automática no seu Mercado Pago).

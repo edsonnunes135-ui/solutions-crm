@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { UserCheck } from "lucide-react";
 import { apiGet } from "../lib/api";
 import { relativeTime, usageLabel } from "../lib/presence";
 import { roleLabel } from "../lib/roles";
@@ -56,30 +57,30 @@ export default function PresencaView({ token }: { token: string }) {
     <div className="space-y-4 p-1">
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold text-slate-900">Presença</h1>
+          <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 text-white"><UserCheck className="h-4 w-4" /></span> Presença</h1>
           <span className="rounded-full border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">CEO</span>
         </div>
         <p className="mt-1 text-sm text-slate-500">Quem está online agora, há quanto tempo não acessa e o tempo total de uso. Atualiza sozinho a cada 30s.</p>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-2xl border bg-white p-4">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
           <div className="text-xs text-slate-500">Online agora</div>
           <div className="mt-1 flex items-center gap-2 text-2xl font-semibold text-emerald-600">
             <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" />{online}
           </div>
         </div>
-        <div className="rounded-2xl border bg-white p-4">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
           <div className="text-xs text-slate-500">Offline</div>
           <div className="mt-1 text-2xl font-semibold text-slate-700">{rows.length - online}</div>
         </div>
-        <div className="rounded-2xl border bg-white p-4">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
           <div className="text-xs text-slate-500">Total de contas</div>
           <div className="mt-1 text-2xl font-semibold text-slate-900">{rows.length}</div>
         </div>
       </div>
 
-      <div className="rounded-2xl border bg-white">
+      <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
