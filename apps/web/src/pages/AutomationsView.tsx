@@ -3,7 +3,7 @@ import { Zap, Plus, Trash2, X, MessageSquare, ListTodo, Tag as TagIcon } from "l
 import { apiPost, apiPatch, apiDelete } from "../lib/api";
 
 function Card({ children, className = "" }: any) {
-  return <div className={`rounded-2xl border bg-white ${className}`}>{children}</div>;
+  return <div className={`rounded-2xl border border-slate-200/80 bg-white shadow-sm ${className}`}>{children}</div>;
 }
 function Input(props: any) {
   return <input {...props} className={`w-full rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200 ${props.className ?? ""}`} />;
@@ -86,8 +86,8 @@ export default function AutomationsView({ token, automations, onChanged }: Props
       <div className="p-4 pb-3">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-base font-semibold">Automações</div>
-            <div className="text-sm text-slate-500">Robô de atendimento: responda, crie tarefas e organize leads sem mexer um dedo</div>
+            <div className="flex items-center gap-2 text-base font-semibold"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white"><Zap className="h-4 w-4" /></span> Automações</div>
+            <div className="mt-1 text-sm text-slate-500">Robô de atendimento: responda, crie tarefas e organize leads sem mexer um dedo</div>
           </div>
           <button onClick={() => setShowNew(true)} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">
             <Plus className="h-4 w-4" /> Novo fluxo
@@ -101,7 +101,7 @@ export default function AutomationsView({ token, automations, onChanged }: Props
           </div>
         )}
         {automations.map((a) => (
-          <div key={a.id} className="rounded-2xl border p-4">
+          <div key={a.id} className="rounded-2xl border border-slate-200/80 p-4 shadow-sm transition hover:shadow-md">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="font-medium">{a.name}</div>

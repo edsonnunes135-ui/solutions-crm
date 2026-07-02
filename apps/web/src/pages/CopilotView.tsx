@@ -57,13 +57,13 @@ export default function CopilotView({ token }: { token: string }) {
         </div>
       )}
 
-      <div className="flex-1 space-y-3 overflow-auto p-4" style={{ minHeight: 360, maxHeight: 480 }}>
+      <div className="chat-bg flex-1 space-y-3 overflow-y-auto overflow-x-hidden p-4" style={{ minHeight: 360, maxHeight: 480 }}>
         {chat.length === 0 && (
           <div className="space-y-2">
             <div className="text-sm text-slate-500">Comece com uma sugestão:</div>
             <div className="grid gap-2 sm:grid-cols-2">
               {sugestoes.map((s) => (
-                <button key={s} onClick={() => ask(s)} className="rounded-2xl border p-3 text-left text-sm hover:bg-slate-50">
+                <button key={s} onClick={() => ask(s)} className="rounded-2xl border border-slate-200/80 bg-white p-3 text-left text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                   {s}
                 </button>
               ))}
@@ -72,7 +72,7 @@ export default function CopilotView({ token }: { token: string }) {
         )}
         {chat.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] whitespace-pre-wrap rounded-2xl border px-3 py-2 text-sm ${m.role === "user" ? "bg-slate-900 text-white" : "bg-white"}`}>
+            <div className={`max-w-[78%] min-w-0 whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-sm shadow-sm [overflow-wrap:anywhere] ${m.role === "user" ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-800"}`}>
               {m.text}
             </div>
           </div>
