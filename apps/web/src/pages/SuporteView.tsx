@@ -1,4 +1,5 @@
 import React from "react";
+import { LifeBuoy } from "lucide-react";
 import ChatBox from "../components/ChatBox";
 import { getUser } from "../lib/auth";
 
@@ -8,7 +9,7 @@ export default function SuporteView({ token }: { token: string }) {
     <div className="space-y-4 p-1">
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold text-slate-900">Suporte</h1>
+          <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-500 text-white"><LifeBuoy className="h-4 w-4" /></span> Suporte</h1>
           <span className="rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">atendimento direto</span>
         </div>
         <p className="mt-1 text-sm text-slate-500">

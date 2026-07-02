@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { UserCheck } from "lucide-react";
 import { apiGet } from "../lib/api";
 import { relativeTime, usageLabel } from "../lib/presence";
 import { roleLabel } from "../lib/roles";
@@ -41,7 +42,7 @@ export default function VendedoresView({ token }: { token: string }) {
   return (
     <div className="space-y-4 p-1">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Vendedores</h1>
+        <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white"><UserCheck className="h-4 w-4" /></span> Vendedores</h1>
         <p className="mt-1 text-sm text-slate-500">
           Sua equipe em tempo real. <span className="text-emerald-600 font-medium">{online} online</span> · {rows.length - online} offline. Atualiza sozinho a cada 30s.
         </p>
@@ -49,7 +50,7 @@ export default function VendedoresView({ token }: { token: string }) {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {sorted.map((m) => (
-          <div key={m.userId} className="rounded-2xl border bg-white p-4">
+          <div key={m.userId} className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:shadow-md">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0">
                 <span className={`inline-block h-3 w-3 shrink-0 rounded-full ${m.online ? "bg-emerald-500" : "bg-red-400"}`} />

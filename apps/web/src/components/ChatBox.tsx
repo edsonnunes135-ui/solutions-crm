@@ -72,14 +72,14 @@ export default function ChatBox({
   }
 
   return (
-    <div className="flex flex-col rounded-2xl border bg-white">
-      <div className={`${heightClass} space-y-3 overflow-y-auto p-4`}>
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+      <div className={`chat-bg ${heightClass} space-y-3 overflow-y-auto overflow-x-hidden p-4`}>
         {msgs.length === 0 && <div className="grid h-full place-items-center text-sm text-slate-400">{emptyHint}</div>}
         {msgs.map((m) => {
           const mine = m.fromUserId === meId;
           return (
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[78%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-slate-900 text-white" : "border bg-slate-50 text-slate-800"}`}>
+              <div className={`max-w-[78%] min-w-0 rounded-2xl px-3 py-2 text-sm shadow-sm [overflow-wrap:anywhere] ${mine ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-800"}`}>
                 {!mine && (
                   <div className="mb-0.5 text-xs font-medium text-slate-500">
                     {m.fromName} {m.fromRole && <span className="text-slate-400">· {roleTag[m.fromRole] ?? m.fromRole}</span>}

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { LifeBuoy } from "lucide-react";
 import ChatBox from "../components/ChatBox";
 import { getUser } from "../lib/auth";
 import { apiGet } from "../lib/api";
@@ -39,14 +40,14 @@ export default function SuporteCeoView({ token }: { token: string }) {
     <div className="space-y-4 p-1">
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold text-slate-900">Suporte aos clientes</h1>
+          <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-500 text-white"><LifeBuoy className="h-4 w-4" /></span> Suporte aos clientes</h1>
           <span className="rounded-full border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">CEO</span>
         </div>
         <p className="mt-1 text-sm text-slate-500">Conversas de suporte das empresas assinantes. Responda em tempo real.</p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-        <div className="rounded-2xl border bg-white">
+        <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm">
           <div className="border-b px-4 py-3 text-sm font-medium text-slate-600">Conversas ({threads.length})</div>
           <div className="max-h-[460px] overflow-y-auto">
             {loading && <div className="p-4 text-sm text-slate-400">Carregando…</div>}
@@ -86,7 +87,7 @@ export default function SuporteCeoView({ token }: { token: string }) {
               />
             </>
           ) : (
-            <div className="grid h-[460px] place-items-center rounded-2xl border bg-white text-sm text-slate-400">
+            <div className="grid h-[460px] place-items-center rounded-2xl border border-slate-200/80 bg-white text-sm text-slate-400 shadow-sm">
               Selecione uma conversa à esquerda para responder.
             </div>
           )}

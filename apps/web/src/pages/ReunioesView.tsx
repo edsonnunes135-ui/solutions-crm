@@ -124,7 +124,7 @@ export default function ReunioesView({ token, isManager }: { token: string; isMa
   return (
     <div className="space-y-4 p-1">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Reuniões por vídeo</h1>
+        <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 text-white"><Video className="h-4 w-4" /></span> Reuniões por vídeo</h1>
         <p className="mt-1 text-sm text-slate-500">Sua sala de vídeo da empresa, dentro do app. Agende um horário e a equipe entra com 1 clique.</p>
       </div>
 
@@ -139,7 +139,7 @@ export default function ReunioesView({ token, isManager }: { token: string; isMa
         {err && <div className="mt-3 text-sm text-red-300">{err}</div>}
       </div>
 
-      <div className="rounded-2xl border bg-white">
+      <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm">
         <div className="flex items-center gap-2 border-b px-4 py-3 text-sm font-medium text-slate-600">
           <Calendar className="h-4 w-4" /> Próximas reuniões
         </div>
@@ -165,7 +165,7 @@ export default function ReunioesView({ token, isManager }: { token: string; isMa
       </div>
 
       {isManager && (
-        <form onSubmit={schedule} className="rounded-2xl border bg-white p-4">
+        <form onSubmit={schedule} className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
           <div className="mb-3 text-sm font-medium text-slate-600">Agendar reunião</div>
           <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Alinhamento de metas da semana" className="rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200" />
